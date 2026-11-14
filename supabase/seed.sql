@@ -1,0 +1,1 @@
+-- Local test data (made-up names and placeholder images only). Filled in during phase 2.

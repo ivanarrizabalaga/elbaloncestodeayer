@@ -160,3 +160,8 @@ supabase/.temp
 
 # Vercel
 .vercel
+
+# Next.js / misc
+next-env.d.ts
+*.pem
+.DS_Store

@@ -31,10 +31,12 @@ Two roles: **user** and **admin**. All admins can do exactly the same things. Vi
 | Tag someone in a photo (published immediately) | | ✓ | ✓ |
 | Suggest a name for an unknown «?» face | | ✓ (goes to review) | ✓ (direct) |
 | Add a memory to a photo (published immediately) | | ✓ | ✓ |
+| Edit or delete their own memories | | ✓ | ✓ |
 | Invite a tagged person | | ✓ | ✓ |
 | Claim their person profile («Este soy yo») | | ✓ | ✓ |
 | Remove their own tag (immediate) | | ✓ | ✓ |
 | Request a photo withdrawal | ✓ (form) | ✓ | ✓ |
+| Withdraw a photo they proposed (immediate) | | ✓ | ✓ |
 | Propose photos | | ✓ (goes to review) | — |
 | Upload, edit, publish and withdraw photos | | | ✓ |
 | Work the review queue | | | ✓ |
@@ -85,13 +87,14 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 
 ## 4. Data model (Postgres / Supabase)
 
-All tables have RLS enabled.
+All tables have RLS enabled. The schema lives in `supabase/migrations/`; this section is the summary.
 
-**profiles** — one row per user with an account (`id` = `auth.users.id`)
-- `display_name`, `role` (`user` | `admin`), `person_id` (nullable, unique: the person they have claimed), `invited_by`, `blocked_at`, `created_at`
+**profiles** — one row per user with an account (`id` = `auth.users.id`), created automatically on sign-up
+- `display_name` (empty until the user sets it; never derived from the email), `role` (`user` | `admin`), `invited_by`, `blocked_at`, `created_at`
+- Only the owner and admins can read a profile. Public names are exposed through the `profile_names` view (`id`, `display_name`).
 
 **people** — people who appear in photos (with or without an account)
-- `full_name`, `slug`, `bio`, `claimed_by` (profile, nullable), `merged_into` (nullable), `created_by`, `created_at`
+- `full_name`, `slug`, `bio`, `claimed_by` (profile, nullable, unique: the single link between an account and its person), `merged_into` (nullable), `created_by`, `created_at`
 
 **photos**
 - `slug`, `status` (`proposed` | `draft` | `published` | `rejected` | `withdrawn`)
@@ -127,7 +130,7 @@ All tables have RLS enabled.
 **Invitation**
 1. Someone tags "Pepe" and taps *Invite* → an `invitation` linked to the person is created → a link to share on WhatsApp (with pre-filled text).
 2. Pepe opens the link → sees the photo with his face marked → «¿Eres tú?».
-3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` → welcome.
+3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` (`people.claimed_by`) and, if his `display_name` is empty, it is set to the person's `full_name` (he can change it later) → welcome.
 4. *Not me* («No soy yo») → creates a `review_item` of kind `tag_dispute` (can propose the correct name).
 
 **Invite an admin** — same flow, with `role = admin`; if the email already has an account, it is promoted on acceptance.
@@ -135,6 +138,12 @@ All tables have RLS enabled.
 **Remove own tag** — immediate (`removed_at`), recorded in `activity`.
 
 **Photo withdrawal** — priority `review_item`; the admin moves it to `withdrawn` (no longer visible; the original is not deleted until confirmed).
+
+**Withdrawing your own photo** — the photos belong to whoever contributes them (§11), so the account that proposed a photo (`proposed_by`) can always take it down, without review:
+- Still `proposed` (nothing else depends on it): it is deleted.
+- `published`: it moves to `withdrawn` immediately and is recorded in `activity`. Tags and memories are kept but hidden, so the work of others is not lost. Admins cannot republish it unless the contributor asks. The original follows the usual rule (deleted only once confirmed).
+- Photos uploaded by admins on someone else's behalf (e.g. the Instagram import) have no `proposed_by`; they follow the normal withdrawal request.
+- Implemented as a `SECURITY DEFINER` function (`withdraw_own_photo`) in phase 5.
 
 **Suggested name** — `review_item`; on acceptance an existing person is assigned or a new one is created.
 
@@ -202,3 +211,13 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 - Privacy page stating who runs the archive and how to request changes.
 - No tracking cookies or invasive analytics.
 - The repo's MIT licence covers **only the code**; the photos belong to their authors or to whoever contributes them.
+
+---
+
+## 12. Open questions / future work
+
+Decisions deliberately postponed. Revisit them in the phase noted.
+
+- **Users creating people while tagging** (phase 5). Today only admins create people; users tag existing people or leave a «?» face and suggest a name, which goes to review. Revisit if the review queue becomes a bottleneck; the risk is duplicate people ("Pepe García" vs "Pepe Garcia").
+- **Account deletion / right to be forgotten** (phase 6). Today contributions survive account deletion without an author (`on delete set null`). Proposal to evaluate: delete the user's memories, release their claimed person, keep tags (they describe the photo, not the user). Document the outcome on the privacy page.
+- **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.

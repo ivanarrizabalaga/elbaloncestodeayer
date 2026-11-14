@@ -20,8 +20,9 @@ Guide for working in this repo. Read [`SPEC.md`](SPEC.md) first: it explains wha
 - **Server components by default.** Client components only where there is real interaction (tagging on the photo, forms, tabs).
 - **Mutations with Server Actions** or simple route handlers. No global state or data-fetching libraries.
 - **Styling with Tailwind** using the colour and typography tokens from `SPEC.md` (§3, Visual identity), defined once in the theme config.
-- **Database:** every schema change is a SQL migration in `supabase/migrations/`. Types are generated with the Supabase CLI, never by hand.
-- **Tests:** keep them few and focused on what matters most: RLS policies, tested with pgTAP (`supabase test db`). No UI tests for now.
+- **Database:** every schema change is a new SQL migration in `supabase/migrations/` (never edit one that is already merged). After a change run `pnpm db:reset`, `pnpm db:types` and `pnpm db:test`. Types are generated, never written by hand.
+- **Permissions:** simple row rules live in RLS policies. Multi-step flows or column-level rules (claim profile, remove own tag, accept invitation, role changes) are `SECURITY DEFINER` functions with `set search_path = ''` that check permissions themselves.
+- **Tests:** keep them few and focused on what matters most: RLS policies, tested with pgTAP in `supabase/tests/` (`pnpm db:test`). Every new policy or permission function gets a test. No UI tests for now.
 - **Accessibility:** real elements (`<button>`, `<a>`, `<label>`), `alt` on images, visible focus, touch targets ≥ 44 px, AA contrast.
 - **Mobile first:** most people will arrive from a WhatsApp link.
 
@@ -44,5 +45,7 @@ The mockups are in `design/*.dc.html`. They are the visual and behavioural refer
 
 - One phase of `SPEC.md` §9 per branch and PR (large phases may be split into several small PRs). Small, reviewable PRs.
 - If a decision changes something in `SPEC.md`, update it in the same PR.
-- Before calling something done: `lint`, `typecheck` and `build` with no errors. (Exact commands are added here in phase 1.)
+- Before calling something done, `pnpm check` must pass (it runs `pnpm lint`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`). Use `pnpm format` to fix formatting. Markdown files are not formatted by Prettier.
+- This is Next.js 16: APIs differ from older versions (e.g. middleware is now `proxy`). Cache Components is deliberately **off**: pages that read the session just render per request. Check `AGENTS.md` and the docs bundled in `node_modules/next/dist/docs/` before writing Next.js code.
+- **Supabase in code:** use `createClient()` / `getCurrentUser()` from `src/lib/supabase/server.ts` (acts as the user, goes through RLS). The secret key is only for local scripts in `scripts/`; the app never uses it until a phase explicitly needs it.
 - If something in the spec is unclear, ask before inventing.
