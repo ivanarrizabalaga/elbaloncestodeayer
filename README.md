@@ -46,12 +46,14 @@ Both use `.env.local`. For production use `pnpm prod:admin list|grant <email>`, 
 Database:
 
 ```bash
-pnpm db:reset     # re-create the local DB from supabase/migrations + supabase/seed.sql
+pnpm db:reset     # re-create the local DB from supabase/migrations + supabase/seed.sql (made-up test data)
 pnpm db:test      # pgTAP tests (supabase/tests), mainly RLS
 pnpm db:lint      # lint SQL functions
 pnpm db:types     # regenerate src/lib/supabase/database.types.ts after a schema change
 pnpm db:stop
 ```
+
+The seed has made-up people, teams and placeholder images (`public/seed/`), e.g. http://localhost:3000/foto/cb-ribera-1984-85-equipo.
 
 Environment variables are listed in `.env.example`.
 
