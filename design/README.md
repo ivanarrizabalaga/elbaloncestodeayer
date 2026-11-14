@@ -1,21 +1,21 @@
-# Diseños
+# Designs
 
-Mockups de las pantallas principales, exportados del lienzo de diseño. Son la **referencia visual y de comportamiento**, no código de producción.
+Mockups of the main screens, exported from the design canvas. They are the **visual and behavioural reference**, not production code. Their copy is in Spanish, like the site's UI.
 
-| Fichero | Pantalla |
+| File | Screen |
 |---|---|
-| `Main.dc.html` | Inicio / galería (escritorio) |
-| `Foto.dc.html` | Ficha de foto (escritorio, interactiva) |
-| `Persona.dc.html` | Página de persona (escritorio) |
-| `FotoMovil.dc.html` | Ficha de foto (móvil, 390 × 844) |
-| `Invitacion.dc.html` | Flujo de invitación (móvil, interactivo) |
-| `AdminPendiente.dc.html` | Admin · Pendiente de revisar (interactiva) |
-| `AdminSubir.dc.html` | Admin · Subir y etiquetar |
-| `AdminUsuarios.dc.html` | Admin · Usuarios y administradores (interactiva) |
+| `Main.dc.html` | Home / gallery (desktop) |
+| `Foto.dc.html` | Photo page (desktop, interactive) |
+| `Persona.dc.html` | Person page (desktop) |
+| `FotoMovil.dc.html` | Photo page (mobile, 390 × 844) |
+| `Invitacion.dc.html` | Invitation flow (mobile, interactive) |
+| `AdminPendiente.dc.html` | Admin · Pending review (interactive) |
+| `AdminSubir.dc.html` | Admin · Upload and tag |
+| `AdminUsuarios.dc.html` | Admin · Users and admins (interactive) |
 
-## Cómo leerlos
+## How to read them
 
-- Es HTML con un formato de plantilla propio del lienzo: `{{valor}}` se rellena desde `renderVals()` (el bloque `<script type="text/x-dc">` al final), `<sc-if>` es un condicional y `<sc-for>` un bucle. `support.js` no está incluido, así que **no se abren tal cual en el navegador**.
-- Los estilos van en línea: de ahí salen colores, tamaños, espaciados y radios (resumidos en `SPEC.md` §3).
-- La lógica de `renderVals()` describe los estados de las pantallas interactivas (selección de etiqueta, pasos de la invitación, filtros de la cola, modal de invitar admin).
-- Las «fotos» son siluetas SVG de relleno y los nombres son de ejemplo. Lo que va entre `[corchetes]` es contenido por definir.
+- It is HTML in the canvas's own template format: `{{value}}` is filled from `renderVals()` (the `<script type="text/x-dc">` block at the end), `<sc-if>` is a conditional and `<sc-for>` a loop. `support.js` is not included, so **they do not open as-is in a browser**.
+- Styles are inline: that is where colours, sizes, spacing and radii come from (summarised in `SPEC.md` §3).
+- The `renderVals()` logic describes the states of the interactive screens (tag selection, invitation steps, queue filters, invite-admin modal).
+- The "photos" are placeholder SVG silhouettes and the names are examples. Anything in `[brackets]` is content still to be defined.

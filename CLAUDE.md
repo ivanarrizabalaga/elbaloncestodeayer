@@ -1,46 +1,48 @@
 # CLAUDE.md
 
-Guía para trabajar en este repo. Lee primero [`SPEC.md`](SPEC.md): ahí está qué construimos y por qué.
+Guide for working in this repo. Read [`SPEC.md`](SPEC.md) first: it explains what we are building and why.
 
-## Principio número uno
+## Rule number one
 
-**Lo más sencillo que funcione.** El mantenedor prefiere «pecar de sencillo» antes que algo sofisticado que luego no se pueda mantener. Antes de añadir una dependencia, una capa o una abstracción, pregúntate si de verdad hace falta; si dudas, no la añadas y coméntalo en el PR.
+**The simplest thing that works.** The maintainer would rather "err on the side of simple" than have something sophisticated that later cannot be maintained. Before adding a dependency, a layer or an abstraction, ask yourself whether it is really needed; if in doubt, don't add it and mention it in the PR.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript (strict) + Tailwind CSS.
-- Supabase: Postgres, Auth (enlace mágico) y RLS, usando `@supabase/ssr` / `@supabase/supabase-js`. Sin ORM.
-- Cloudflare R2 (API S3) para imágenes; `sharp` para generar derivados en el servidor.
-- Despliegue en Vercel.
+- Supabase: Postgres, Auth (magic link) and RLS, using `@supabase/ssr` / `@supabase/supabase-js`. No ORM.
+- Cloudflare R2 (S3 API) for images; `sharp` to generate derivatives on the server.
+- Deployed on Vercel.
+- Node 22 LTS and pnpm.
 
-## Convenciones
+## Conventions
 
-- **Idioma:** textos de la interfaz en español de España. Código, nombres de tablas/columnas, identificadores y mensajes de commit en inglés. La documentación del repo, en español.
-- **Componentes de servidor por defecto.** Componentes de cliente solo donde haya interacción real (etiquetado sobre la foto, formularios, pestañas).
-- **Mutaciones con Server Actions** o route handlers sencillos. Sin librerías de estado global ni de fetching.
-- **Estilos con Tailwind** usando los tokens de color y tipografía de `SPEC.md` (§3, Identidad visual), definidos una vez en la config del tema.
-- **Base de datos:** cada cambio de esquema es una migración SQL en `supabase/migrations/`. Tipos generados con la CLI de Supabase, no a mano.
-- **Accesibilidad:** elementos reales (`<button>`, `<a>`, `<label>`), `alt` en las imágenes, foco visible, objetivos táctiles ≥ 44 px, contraste AA.
-- **Móvil primero:** la mayoría llegará desde un enlace de WhatsApp.
+- **Language:** the UI copy is in Spanish (Spain), and so are public URL segments (`/foto/`, `/persona/`, `/admin/pendiente`). **Everything else in the repo is in English**: code, identifiers, table/column names, docs, commit messages and PR descriptions.
+- **Server components by default.** Client components only where there is real interaction (tagging on the photo, forms, tabs).
+- **Mutations with Server Actions** or simple route handlers. No global state or data-fetching libraries.
+- **Styling with Tailwind** using the colour and typography tokens from `SPEC.md` (§3, Visual identity), defined once in the theme config.
+- **Database:** every schema change is a SQL migration in `supabase/migrations/`. Types are generated with the Supabase CLI, never by hand.
+- **Tests:** keep them few and focused on what matters most: RLS policies, tested with pgTAP (`supabase test db`). No UI tests for now.
+- **Accessibility:** real elements (`<button>`, `<a>`, `<label>`), `alt` on images, visible focus, touch targets ≥ 44 px, AA contrast.
+- **Mobile first:** most people will arrive from a WhatsApp link.
 
-## Seguridad (no negociable)
+## Security (non-negotiable)
 
-- **RLS en todas las tablas.** Los permisos de `SPEC.md` §2 se aplican en las políticas de Postgres, no solo en la interfaz.
-- Las comprobaciones de admin se hacen en el servidor **y** en RLS.
-- La clave `service_role` de Supabase y las de R2 solo existen en el servidor (variables de entorno). Nunca en el cliente, nunca en el repo.
-- Mantén `.env.example` al día con los nombres de las variables (sin valores).
+- **RLS on every table.** The permissions in `SPEC.md` §2 are enforced in Postgres policies, not just in the UI.
+- Admin checks happen on the server **and** in RLS.
+- The Supabase `service_role` key and the R2 keys exist only on the server (environment variables). Never on the client, never in the repo.
+- Keep `.env.example` up to date with variable names (no values).
 
-## Contenido real: nunca en el repo
+## Real content: never in the repo
 
-El repo es público. **No commitees** fotos reales, nombres reales, el export de Instagram ni volcados de la base de datos. Los datos de prueba (`seed`) usan nombres inventados e imágenes de relleno. Si ves algo así preparado para commit, para y avisa.
+The repo is public. **Do not commit** real photos, real names, the Instagram export or database dumps. Test data (`seed`) uses made-up names and placeholder images. If you see anything like that staged for commit, stop and warn.
 
-## Diseños
+## Designs
 
-Los mockups están en `design/*.dc.html`. Son la referencia visual y de comportamiento, **no código para copiar**: usan un formato de plantilla propio del lienzo de diseño (`{{...}}`, `<sc-if>`, `<sc-for>`, estilos en línea). Léelos para sacar la estructura, los textos, los estados y los estilos, y constrúyelos con componentes React + Tailwind. Ver `design/README.md`.
+The mockups are in `design/*.dc.html`. They are the visual and behavioural reference, **not code to copy**: they use the design canvas's own template format (`{{...}}`, `<sc-if>`, `<sc-for>`, inline styles). Read them to extract structure, copy, states and styles, and build them with React components + Tailwind. See `design/README.md`.
 
-## Forma de trabajar
+## Way of working
 
-- Una fase de `SPEC.md` §9 por rama y PR. PRs pequeños y revisables.
-- Si una decisión cambia algo de `SPEC.md`, actualízalo en el mismo PR.
-- Antes de dar algo por terminado: `lint`, `typecheck` y `build` sin errores. (Comandos exactos: se añaden aquí en la fase 1.)
-- Si algo de la especificación no está claro, pregunta antes de inventar.
+- One phase of `SPEC.md` §9 per branch and PR (large phases may be split into several small PRs). Small, reviewable PRs.
+- If a decision changes something in `SPEC.md`, update it in the same PR.
+- Before calling something done: `lint`, `typecheck` and `build` with no errors. (Exact commands are added here in phase 1.)
+- If something in the spec is unclear, ask before inventing.
