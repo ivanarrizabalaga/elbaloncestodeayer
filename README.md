@@ -1,29 +1,31 @@
 # El baloncesto de ayer
 
-Archivo fotográfico colaborativo del baloncesto de antes: fotos antiguas en las que la gente se etiqueta e invita a sus compañeros.
+A collaborative photo archive of basketball from the old days: old photos where people tag themselves and invite their teammates.
 
-Empezó con la colección de Jorge, publicada en Instagram como **#elbaloncestodeayer**. La web es el archivo; Instagram, el escaparate.
+It started with Jorge's collection, published on Instagram as **#elbaloncestodeayer**. The website is the archive; Instagram is the shop window.
 
-## Cómo funciona
+The site is aimed at a Spanish audience, so its UI is in Spanish. Everything in this repo (code and docs) is in English.
 
-1. Un admin sube una foto y etiqueta a quien reconoce.
-2. A cada persona etiquetada le puede llegar un enlace (normalmente por WhatsApp): «¿Eres tú?».
-3. Si se reconoce, entra con su email (sin contraseña) y puede etiquetar a sus compañeros, añadir recuerdos e invitar a quien falte.
+## How it works
 
-## Estado
+1. An admin uploads a photo and tags whoever they recognise.
+2. Each tagged person can receive a link (usually via WhatsApp): «¿Eres tú?» ("Is this you?").
+3. If they recognise themselves, they sign in with their email (no password) and can tag their teammates, add memories and invite whoever is missing.
 
-🚧 En construcción. Ver [`SPEC.md`](SPEC.md) para la especificación y las fases, y [`design/`](design/) para los mockups.
+## Status
+
+🚧 Under construction. See [`SPEC.md`](SPEC.md) for the specification and phases, and [`design/`](design/) for the mockups.
 
 ## Stack
 
 Next.js · TypeScript · Tailwind · Supabase (Postgres, Auth, RLS) · Cloudflare R2 · Vercel
 
-## Desarrollo local
+## Local development
 
-_Se completa en la fase 1._
+_Filled in during phase 1._
 
-## Licencia
+## Licence
 
-El **código** se publica bajo licencia [MIT](LICENSE).
+The **code** is released under the [MIT](LICENSE) licence.
 
-Las **fotografías y los datos de personas** no forman parte de este repositorio ni están cubiertos por esa licencia: pertenecen a sus autores o a quienes las aportan. Si sales en una foto y quieres que se retire, puedes pedirlo desde la propia web.
+The **photographs and people's data** are not part of this repository and are not covered by that licence: they belong to their authors or to whoever contributes them. If you appear in a photo and want it withdrawn, you can request it from the website itself.

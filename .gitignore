@@ -149,9 +149,9 @@ vite.config.ts.timestamp-*
 .turbo
 
 # --- El baloncesto de ayer ---
-# Contenido real: nunca al repo (es público)
+# Real content: never in the repo (it is public)
 instagram-export/
-data/
+/data/
 *.zip
 
 # Supabase CLI (local)

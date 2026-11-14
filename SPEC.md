@@ -1,199 +1,204 @@
-# El baloncesto de ayer — Especificación
+# El baloncesto de ayer — Specification
 
-Archivo fotográfico colaborativo del baloncesto de antes. Empezó con la colección de Jorge (publicada en Instagram como **#elbaloncestodeayer**) y crece con lo que aporta la gente que sale en las fotos.
+A collaborative photo archive of basketball from the old days. It started with Jorge's collection (published on Instagram as **#elbaloncestodeayer**) and grows with what the people in the photos contribute.
 
-La idea central: **alguien te etiqueta en una foto → te llega un enlace → te reconoces, entras → etiquetas a tus compañeros y les invitas.** Así el archivo crece solo.
+The core idea: **someone tags you in a photo → you get a link → you recognise yourself, you sign in → you tag your teammates and invite them.** That way the archive grows by itself.
 
-No se trata de monetizar, se trata de compartir.
+This is not about making money, it is about sharing.
 
----
-
-## 1. Principios
-
-1. **Sencillo y mantenible antes que sofisticado.** Si dudamos entre dos opciones, gana la que se pueda entender y mantener un domingo por la tarde.
-2. **Coste ~0 €.** Planes gratuitos (Vercel Hobby, Supabase Free, Cloudflare R2 Free) más el dominio.
-3. **La web es el archivo; Instagram es el escaparate.** Nada de sincronización en tiempo real con Instagram.
-4. **El código es abierto; el contenido no.** Fotos, nombres reales y exports nunca entran en el repo.
-5. **Privacidad por defecto.** Cualquiera puede quitarse su etiqueta al momento y pedir que se retire una foto. Datos en la UE.
-6. **Las fotos mandan.** Interfaz oscura, discreta, sin adornos.
+> Language: everything in this repo is written in English. The site's UI copy is in Spanish (Spain); UI strings quoted below in «guillemets» are the actual Spanish copy.
 
 ---
 
-## 2. Roles y permisos
+## 1. Principles
 
-Dos roles: **usuario** y **admin**. Todos los admins pueden exactamente lo mismo. Los visitantes sin cuenta solo miran.
+1. **Simple and maintainable over sophisticated.** When in doubt between two options, pick the one that can be understood and maintained on a Sunday afternoon.
+2. **~€0 running cost.** Free tiers (Vercel Hobby, Supabase Free, Cloudflare R2 Free) plus the domain.
+3. **The website is the archive; Instagram is the shop window.** No real-time sync with Instagram.
+4. **The code is open; the content is not.** Photos, real names and exports never go into the repo.
+5. **Privacy by default.** Anyone can remove their own tag instantly and request that a photo be withdrawn. Data stays in the EU.
+6. **Photos come first.** Dark, quiet UI with no ornaments.
 
-| Acción | Visitante | Usuario | Admin |
+---
+
+## 2. Roles and permissions
+
+Two roles: **user** and **admin**. All admins can do exactly the same things. Visitors without an account can only browse.
+
+| Action | Visitor | User | Admin |
 |---|:-:|:-:|:-:|
-| Ver fotos, personas, fichas | ✓ | ✓ | ✓ |
-| Etiquetar a alguien en una foto (se publica al momento) | | ✓ | ✓ |
-| Sugerir nombre para una cara «?» | | ✓ (va a revisión) | ✓ (directo) |
-| Añadir un recuerdo a una foto (se publica al momento) | | ✓ | ✓ |
-| Invitar a una persona etiquetada | | ✓ | ✓ |
-| Reclamar su perfil de persona («Este soy yo») | | ✓ | ✓ |
-| Quitarse su propia etiqueta (inmediato) | | ✓ | ✓ |
-| Pedir la retirada de una foto | ✓ (formulario) | ✓ | ✓ |
-| Proponer fotos | | ✓ (va a revisión) | — |
-| Subir, editar, publicar y retirar fotos | | | ✓ |
-| Revisar la cola de pendientes | | | ✓ |
-| Deshacer etiquetas / ocultar recuerdos | | | ✓ |
-| Crear, editar y fusionar personas | | | ✓ |
-| Hacer admin, quitar admin, invitar admins | | | ✓ |
-| Bloquear usuarios | | | ✓ |
+| View photos, people, photo pages | ✓ | ✓ | ✓ |
+| Tag someone in a photo (published immediately) | | ✓ | ✓ |
+| Suggest a name for an unknown «?» face | | ✓ (goes to review) | ✓ (direct) |
+| Add a memory to a photo (published immediately) | | ✓ | ✓ |
+| Invite a tagged person | | ✓ | ✓ |
+| Claim their person profile («Este soy yo») | | ✓ | ✓ |
+| Remove their own tag (immediate) | | ✓ | ✓ |
+| Request a photo withdrawal | ✓ (form) | ✓ | ✓ |
+| Propose photos | | ✓ (goes to review) | — |
+| Upload, edit, publish and withdraw photos | | | ✓ |
+| Work the review queue | | | ✓ |
+| Undo tags / hide memories | | | ✓ |
+| Create, edit and merge people | | | ✓ |
+| Make admin, remove admin, invite admins | | | ✓ |
+| Block users | | | ✓ |
 
-Reglas:
-- Siempre debe quedar **al menos un admin**.
-- Un usuario bloqueado no puede etiquetar ni proponer, pero lo que ya aportó se queda.
-- Lo que se publica sin revisión aparece en **Actividad reciente** del admin y se puede deshacer.
+Rules:
+- There must always be **at least one admin**.
+- A blocked user cannot tag or propose, but what they already contributed stays.
+- Anything published without review shows up in the admin's **Recent activity** and can be undone.
 
 ---
 
-## 3. Pantallas
+## 3. Screens
 
-Los mockups están en [`design/`](design/) (ver `design/README.md` para leerlos). Son la referencia visual y de comportamiento.
+The mockups live in [`design/`](design/) (see `design/README.md` for how to read them). They are the visual and behavioural reference.
 
-### Públicas
-| Pantalla | Mockup | Qué hace |
-|---|---|---|
-| Inicio / galería | `Main.dc.html` | Foto de la semana, filtros (década, equipo, pabellón, «solo caras sin nombre»), galería en mosaico, bloque «Ayuda a ponerles nombre» |
-| Ficha de foto | `Foto.dc.html`, `FotoMovil.dc.html` | Foto con marcadores numerados sobre las caras, lista «En la foto» (perfil propio / Invitar / Sé quién es), datos, historia, recuerdos, «Más de esta temporada», enlaces de privacidad |
-| Página de persona | `Persona.dc.html` | Nombre, recorte de la cara, «Sale con», fotos por temporada, compartir, invitar |
-| Invitación | `Invitacion.dc.html` | Llega por enlace (WhatsApp): ¿Eres tú? → email → enlace mágico → dentro. También «No soy yo» |
+URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/persona/[slug]`, `/admin/pendiente`). Code identifiers stay in English.
+
+### Public
+| Screen | Route | Mockup | What it does |
+|---|---|---|---|
+| Home / gallery | `/` | `Main.dc.html` | Photo of the week, filters (decade, team, venue, "only unnamed faces"), masonry gallery, «Ayuda a ponerles nombre» block |
+| Photo page | `/foto/[slug]` | `Foto.dc.html`, `FotoMovil.dc.html` | Photo with numbered markers on faces, «En la foto» list (own profile / Invite / «Sé quién es»), details, story, memories, «Más de esta temporada», privacy links |
+| Person page | `/persona/[slug]` | `Persona.dc.html` | Name, face crop, «Sale con», photos by season, share, invite |
+| Invitation | `/invitacion/[token]` | `Invitacion.dc.html` | Arrives via link (WhatsApp): «¿Eres tú?» → email → magic link → signed in. Also «No soy yo» |
 
 ### Admin
-| Pantalla | Mockup | Qué hace |
-|---|---|---|
-| Pendiente de revisar | `AdminPendiente.dc.html` | Cola: fotos propuestas, nombres sugeridos, retiradas (prioritarias), «No soy yo», posibles duplicados. «Me lo quedo» para repartir. Actividad reciente con deshacer |
-| Subir y etiquetar | `AdminSubir.dc.html` | Subida múltiple a borrador, clic en una cara → buscar persona existente / crear nueva / dejar como «?». Datos de la foto. Publicar |
-| Usuarios y admins | `AdminUsuarios.dc.html` | Lista de admins (con invitaciones pendientes) y de usuarios. Invitar administrador, hacer/quitar admin, bloquear |
-| Personas | _(sin mockup)_ | Listado, editar, fusionar duplicados |
-| Fotos | _(sin mockup)_ | Listado con estado (borrador, publicada, retirada), buscar, editar |
-| Importar de Instagram | _(sin mockup)_ | Uso puntual: cargar el export de Jorge como borradores |
+| Screen | Route | Mockup | What it does |
+|---|---|---|---|
+| Pending review | `/admin/pendiente` | `AdminPendiente.dc.html` | Queue: proposed photos, suggested names, withdrawal requests (priority), «No soy yo» disputes, possible duplicates. «Me lo quedo» to split the work. Recent activity with undo |
+| Upload and tag | `/admin/subir` | `AdminSubir.dc.html` | Multi-upload into drafts, click a face → search existing person / create new / leave as «?». Photo details. Publish |
+| Users and admins | `/admin/usuarios` | `AdminUsuarios.dc.html` | List of admins (with pending invitations) and users. Invite admin, make/remove admin, block |
+| People | `/admin/personas` | _(no mockup)_ | List, edit, merge duplicates |
+| Photos | `/admin/fotos` | _(no mockup)_ | List with status (draft, published, withdrawn), search, edit |
+| Instagram import | — | _(no mockup)_ | One-off: load Jorge's export as drafts (local script, see §7) |
 
-### Identidad visual (de los mockups)
-- Fondo `#0E0E0E`, superficies `#161616`/`#181818`/`#1C1C1C`, bordes `#262626`/`#3A3A3A`.
-- Texto `#F2F2F2`, secundario `#A6A6A6`.
-- Acento único: naranja balón `#FF7A1A` (texto sobre naranja: `#0E0E0E`).
-- Tipografía: **Barlow Condensed** (títulos, 600–700) + **Inter** (texto).
-- Botones en píldora, objetivos táctiles ≥ 44 px, contraste AA.
+### Visual identity (from the mockups)
+- Background `#0E0E0E`, surfaces `#161616`/`#181818`/`#1C1C1C`, borders `#262626`/`#3A3A3A`.
+- Text `#F2F2F2`, secondary `#A6A6A6`.
+- Single accent: basketball orange `#FF7A1A` (text on orange: `#0E0E0E`).
+- Typography: **Barlow Condensed** (headings, 600–700) + **Inter** (body).
+- Pill buttons, touch targets ≥ 44 px, AA contrast.
 
 ---
 
-## 4. Modelo de datos (Postgres / Supabase)
+## 4. Data model (Postgres / Supabase)
 
-Nombres en inglés. Todas las tablas con RLS activado.
+All tables have RLS enabled.
 
-**profiles** — una fila por usuario con cuenta (`id` = `auth.users.id`)
-- `display_name`, `role` (`user` | `admin`), `person_id` (nullable, único: la persona que ha reclamado), `invited_by`, `blocked_at`, `created_at`
+**profiles** — one row per user with an account (`id` = `auth.users.id`)
+- `display_name`, `role` (`user` | `admin`), `person_id` (nullable, unique: the person they have claimed), `invited_by`, `blocked_at`, `created_at`
 
-**people** — personas que salen en las fotos (con o sin cuenta)
+**people** — people who appear in photos (with or without an account)
 - `full_name`, `slug`, `bio`, `claimed_by` (profile, nullable), `merged_into` (nullable), `created_by`, `created_at`
 
 **photos**
 - `slug`, `status` (`proposed` | `draft` | `published` | `rejected` | `withdrawn`)
-- `season_label` (texto libre, p. ej. «1984–85»), `year_from`, `year_to` (para filtrar por década)
-- `team`, `venue`, `competition` (texto libre con autocompletado a partir de valores existentes; normalizar más adelante solo si hace falta)
+- `season_label` (free text, e.g. "1984–85"), `year_from`, `year_to` (for decade filtering)
+- `team`, `venue`, `competition` (free text with autocomplete from existing values; normalise later only if needed)
 - `provenance`, `photographer`, `story`, `instagram_url`, `featured`
 - `storage_key`, `width`, `height`
 - `proposed_by`, `published_by`, `published_at`, `created_at`
 
-**tags** — una cara en una foto
-- `photo_id`, `person_id` (nullable = cara sin identificar «?»), `x`, `y` (0–1, relativos a la imagen), `label_number`
-- `created_by`, `created_at`, `removed_by`, `removed_at` (borrado lógico para poder deshacer)
+**tags** — one face in one photo
+- `photo_id`, `person_id` (nullable = unidentified «?» face), `x`, `y` (0–1, relative to the image), `label_number`
+- `created_by`, `created_at`, `removed_by`, `removed_at` (soft delete so it can be undone)
 
-**memories** — recuerdos / anécdotas
+**memories** — memories / anecdotes
 - `photo_id`, `author_id`, `body`, `hidden_at`, `created_at`
 
 **invitations**
-- `token_hash`, `role` (`user` | `admin`), `person_id` (nullable), `tag_id` (nullable: desde qué etiqueta se invitó), `email` (nullable), `invited_by`, `created_at`, `expires_at` (7 días), `accepted_at`, `accepted_by`
+- `token_hash`, `role` (`user` | `admin`), `person_id` (nullable), `tag_id` (nullable: the tag the invite was sent from), `email` (nullable), `invited_by`, `created_at`, `expires_at` (7 days), `accepted_at`, `accepted_by`
 
-**review_items** — la cola de «Pendiente»
+**review_items** — the "Pending" queue
 - `kind` (`photo_proposal` | `name_suggestion` | `removal_request` | `tag_dispute` | `duplicate_person`)
-- `status` (`open` | `resolved` | `dismissed`), `priority` (bool; `removal_request` siempre prioritaria)
-- `photo_id`, `tag_id`, `person_id`, `payload` (jsonb: nombre propuesto, motivo, persona duplicada…)
+- `status` (`open` | `resolved` | `dismissed`), `priority` (bool; `removal_request` is always priority)
+- `photo_id`, `tag_id`, `person_id`, `payload` (jsonb: proposed name, reason, duplicate person…)
 - `created_by`, `assigned_to`, `resolved_by`, `resolved_at`, `created_at`
 
-**activity** — registro para «Actividad reciente» y deshacer
+**activity** — log for "Recent activity" and undo
 - `actor_id`, `action`, `target_type`, `target_id`, `data` (jsonb), `created_at`
 
 ---
 
-## 5. Flujos clave
+## 5. Key flows
 
-**Invitación**
-1. Alguien etiqueta a «Pepe» y pulsa *Invitar* → se crea una `invitation` ligada a la persona → enlace para compartir por WhatsApp (con texto prerrellenado).
-2. Pepe abre el enlace → ve la foto con su cara marcada → «¿Eres tú?».
-3. *Sí* → email → enlace mágico (Supabase Auth) → acepta que su nombre aparezca → su `profile` queda ligado a la `person` → bienvenida.
-4. *No soy yo* → crea un `review_item` de tipo `tag_dispute` (puede proponer el nombre correcto).
+**Invitation**
+1. Someone tags "Pepe" and taps *Invite* → an `invitation` linked to the person is created → a link to share on WhatsApp (with pre-filled text).
+2. Pepe opens the link → sees the photo with his face marked → «¿Eres tú?».
+3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` → welcome.
+4. *Not me* («No soy yo») → creates a `review_item` of kind `tag_dispute` (can propose the correct name).
 
-**Invitar admin** — igual, con `role = admin`; si el email ya tiene cuenta, se le promociona al aceptar.
+**Invite an admin** — same flow, with `role = admin`; if the email already has an account, it is promoted on acceptance.
 
-**Quitarse la etiqueta** — inmediato (`removed_at`), queda en `activity`.
+**Remove own tag** — immediate (`removed_at`), recorded in `activity`.
 
-**Retirada de foto** — `review_item` prioritario; el admin la pasa a `withdrawn` (deja de verse; no se borra el original hasta confirmarlo).
+**Photo withdrawal** — priority `review_item`; the admin moves it to `withdrawn` (no longer visible; the original is not deleted until confirmed).
 
-**Nombre sugerido** — `review_item`; al aceptar se asigna la persona existente o se crea una nueva.
+**Suggested name** — `review_item`; on acceptance an existing person is assigned or a new one is created.
 
-**Duplicados** — el admin fusiona: las etiquetas pasan a la persona destino y la otra queda con `merged_into`.
-
----
-
-## 6. Imágenes
-
-- Almacenamiento en **Cloudflare R2**.
-- Al subir se generan en el servidor (con `sharp`) dos derivados: **miniatura** (~480 px) y **grande** (~1600 px), en WebP.
-- Los derivados se sirven públicos desde R2; el **original** se guarda en un prefijo privado.
-- Subida directa del navegador a R2 con URL prefirmada; el procesado se hace después en el servidor.
-- Nada de transformaciones al vuelo de pago.
+**Duplicates** — the admin merges: tags move to the target person and the other one gets `merged_into`.
 
 ---
 
-## 7. Importar de Instagram
+## 6. Images
 
-Una sola vez, a partir del export de la cuenta de Jorge (Instagram → «Descargar tu información», formato JSON):
-- Script o pantalla de admin que crea una foto en **borrador** por publicación, con el texto como `story` y el enlace original.
-- Opcional: extraer del texto nombres y años para prerrellenar (siempre revisado por un admin).
-- El export **nunca** se sube al repo (`instagram-export/` está en `.gitignore`).
-
----
-
-## 8. Infraestructura
-
-- **Next.js** (App Router, TypeScript, Tailwind) en **Vercel** (Hobby).
-- **Supabase**: Postgres + Auth (enlace mágico por email) + RLS. Proyecto en región **UE (Frankfurt)**.
-- **Cloudflare R2** para imágenes.
-- **Cron diario** (Vercel Cron) que hace una consulta ligera para que Supabase Free no pause el proyecto.
-- Migraciones SQL versionadas en `supabase/migrations/`.
-- Copias de seguridad: export periódico de la base de datos (a definir en la fase 6).
+- Stored in **Cloudflare R2**, in two buckets: a **public** one for derivatives and a **private** one for originals. (R2 public access is per bucket, not per prefix.)
+- On upload the server generates (with `sharp`) two derivatives: **thumbnail** (~480 px) and **large** (~1600 px), as WebP.
+- Derivatives are served publicly from the public bucket through a custom domain; the **original** is kept in the private bucket.
+- Direct browser upload to R2 with a presigned URL; processing happens afterwards on the server.
+- No paid on-the-fly transformations.
 
 ---
 
-## 9. Fases
+## 7. Instagram import
 
-1. **Esqueleto** — Next.js, esquema y RLS, login con enlace mágico, despliegue en Vercel, cron anti-pausa.
-2. **Web pública de solo lectura** — Inicio, ficha de foto, página de persona, con datos de prueba (`seed`).
-3. **Admin: subir y etiquetar** — subida a R2, derivados, etiquetado sobre la foto, borrador → publicada.
-4. **Importar de Instagram** — Jorge carga su archivo real.
-5. **Comunidad** — invitaciones, reclamar perfil, etiquetado de usuarios, cola de pendientes, actividad, gestión de admins.
-6. **Remates** — privacidad y retirada, copias de seguridad, foto de la semana, SEO básico, compartir en WhatsApp con buena vista previa.
-
-Cada fase en una rama con su PR.
+One-off, from Jorge's account export (Instagram → "Download your information", JSON format):
+- A local script that creates one **draft** photo per post, with the caption as `story` and the original link.
+- Optional: extract names and years from the caption to pre-fill fields (always reviewed by an admin).
+- The export **never** goes into the repo (`instagram-export/` is in `.gitignore`).
 
 ---
 
-## 10. Fuera de alcance (por ahora)
+## 8. Infrastructure
 
-- Reconocimiento facial automático (datos biométricos; no compensa).
-- Publicación automática en Instagram.
-- «Me gusta», seguidores, mensajes privados.
-- Apps nativas, varios idiomas.
+- **Next.js** (App Router, TypeScript, Tailwind) on **Vercel** (Hobby).
+- **Supabase**: Postgres + Auth (email magic link) + RLS. Project in the **EU (Frankfurt)** region.
+- **Transactional email** for magic links through a custom SMTP provider (Supabase's built-in email only reaches project members and is heavily rate-limited).
+- **Cloudflare R2** for images.
+- **Daily cron** (Vercel Cron) running a light query so Supabase Free does not pause the project.
+- Versioned SQL migrations in `supabase/migrations/`.
+- Backups: periodic database export (defined in phase 6).
 
 ---
 
-## 11. Privacidad
+## 9. Phases
 
-- Al reclamar el perfil, la persona acepta que su nombre aparezca en las fotos donde la etiqueten.
-- Quitarse una etiqueta es inmediato; pedir la retirada de una foto llega como prioritario.
-- Página de privacidad con quién gestiona el archivo y cómo pedir cambios.
-- Sin cookies de seguimiento ni analítica invasiva.
-- La licencia MIT del repo cubre **solo el código**; las fotos pertenecen a sus autores o a quien las aporta.
+1. **Skeleton** — Next.js, schema and RLS, magic-link login, Vercel deploy, anti-pause cron.
+2. **Read-only public site** — Home, photo page, person page, with test data (`seed`).
+3. **Admin: upload and tag** — upload to R2, derivatives, tagging on the photo, draft → published.
+4. **Instagram import** — Jorge loads his real archive.
+5. **Community** — invitations, claiming profiles, user tagging, review queue, activity, admin management.
+6. **Finishing touches** — privacy and withdrawal, backups, photo of the week, basic SEO, WhatsApp sharing with a good link preview.
+
+Each phase on its own branch with its own PR (larger phases may be split into several PRs).
+
+---
+
+## 10. Out of scope (for now)
+
+- Automatic face recognition (biometric data; not worth it).
+- Automatic posting to Instagram.
+- Likes, followers, private messages.
+- Native apps, multiple languages.
+
+---
+
+## 11. Privacy
+
+- When claiming their profile, a person agrees to their name appearing on photos where they are tagged.
+- Removing a tag is immediate; a photo withdrawal request arrives as priority.
+- Privacy page stating who runs the archive and how to request changes.
+- No tracking cookies or invasive analytics.
+- The repo's MIT licence covers **only the code**; the photos belong to their authors or to whoever contributes them.
