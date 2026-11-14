@@ -44,7 +44,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
     supabase
       .from("tags")
       .select(
-        "id, x, y, label_number, person:people(full_name, slug, claimed_by)",
+        "id, x, y, label_number, person:people(id, full_name, slug, claimed_by)",
       )
       .eq("photo_id", photo.id)
       .is("removed_at", null)
@@ -78,6 +78,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
     y: tag.y,
     person: tag.person
       ? {
+          id: tag.person.id,
           name: tag.person.full_name,
           slug: tag.person.slug,
           claimed: tag.person.claimed_by !== null,
@@ -158,6 +159,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
         height={photo.height}
         alt={`Foto: ${photoLabel(photo)}`}
         tags={tags}
+        canInvite={Boolean(user)}
         heading={
           <div className="flex flex-col gap-1.5">
             {photo.season_label && (

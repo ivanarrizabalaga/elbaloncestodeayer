@@ -7,7 +7,10 @@ import { PhotoGrid, type GridPhoto } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { photoLabel, photoSrc } from "@/lib/photos";
 import { initials, siteOrigin } from "@/lib/site";
-import { createClient } from "@/lib/supabase/server";
+import { INVITATION_ERRORS } from "@/lib/invitations";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { claimPerson } from "@/app/invitacion/actions";
+import { InviteButton } from "@/components/invite-button";
 
 const getPerson = cache(async (slug: string) => {
   const supabase = await createClient();
@@ -33,12 +36,27 @@ export async function generateMetadata({
 
 export default async function PersonPage({
   params,
+  searchParams,
 }: PageProps<"/persona/[slug]">) {
   const { slug } = await params;
+  const { bienvenida, error } = await searchParams;
   const person = await getPerson(slug);
   if (!person) notFound();
 
   const supabase = await createClient();
+  const user = await getCurrentUser();
+  const isMe = Boolean(user && person.claimed_by === user.id);
+  // «Este soy yo» only for signed-in accounts not linked to anyone yet.
+  const { data: ownPerson } = user
+    ? await supabase
+        .from("people")
+        .select("id")
+        .eq("claimed_by", user.id)
+        .maybeSingle()
+    : { data: null };
+  const canClaim = Boolean(user && !person.claimed_by && !ownPerson);
+  const problem =
+    typeof error === "string" ? INVITATION_ERRORS[error] : undefined;
 
   // A merged duplicate sends visitors to the person it was merged into.
   if (person.merged_into) {
@@ -143,6 +161,32 @@ export default async function PersonPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 pt-10 sm:px-6">
+      {bienvenida === "1" && isMe && (
+        <section
+          aria-labelledby="bienvenida"
+          className="flex flex-col gap-2 rounded-lg bg-surface-2 p-5 sm:p-6"
+        >
+          <h2
+            id="bienvenida"
+            className="font-display text-3xl leading-none font-bold"
+          >
+            Ya estás dentro, {person.full_name.split(" ")[0]}
+          </h2>
+          <p className="text-muted">
+            Tu cuenta ya está enlazada con tu página. Abre cualquier foto en la
+            que salgas para ver quién más aparece e invitar a tus compañeros.
+            Puedes quitar tus etiquetas cuando quieras.
+          </p>
+        </section>
+      )}
+      {problem && (
+        <p
+          role="alert"
+          className="rounded-lg border border-accent px-4 py-3 text-sm"
+        >
+          {problem}
+        </p>
+      )}
       <section
         aria-labelledby="nombre"
         className="flex flex-wrap items-end gap-10"
@@ -191,12 +235,33 @@ export default async function PersonPage({
               {person.bio}
             </p>
           )}
-          <WhatsAppShare
-            primary
-            text={`${person.full_name} en El baloncesto de ayer`}
-            url={shareUrl}
-            className="mt-2 self-start"
-          />
+          <div className="mt-2 flex flex-wrap items-start gap-3">
+            <WhatsAppShare
+              primary
+              text={`${person.full_name} en El baloncesto de ayer`}
+              url={shareUrl}
+            />
+            {user && !person.claimed_by && (
+              <InviteButton
+                personId={person.id}
+                personName={person.full_name}
+                label={`Invitar a ${person.full_name.split(" ")[0]}`}
+                className="h-12! px-5! text-base!"
+              />
+            )}
+            {canClaim && (
+              <form action={claimPerson}>
+                <input type="hidden" name="personId" value={person.id} />
+                <input type="hidden" name="slug" value={person.slug} />
+                <button
+                  type="submit"
+                  className="inline-flex h-12 items-center rounded-full px-5 text-muted underline-offset-4 hover:text-fg hover:underline"
+                >
+                  Este soy yo
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </section>
 

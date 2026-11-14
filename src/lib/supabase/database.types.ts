@@ -647,6 +647,33 @@ export type Database = {
       };
     };
     Functions: {
+      accept_invitation: { Args: { p_token: string }; Returns: string };
+      claim_person: { Args: { p_person_id: string }; Returns: string };
+      dispute_invitation: {
+        Args: { p_suggested_name: string; p_token: string };
+        Returns: undefined;
+      };
+      invitation_preview: {
+        Args: { p_token: string };
+        Returns: {
+          inviter_name: string;
+          person_claimed: boolean;
+          person_id: string;
+          person_name: string;
+          person_slug: string;
+          photo_height: number;
+          photo_season: string;
+          photo_slug: string;
+          photo_storage_key: string;
+          photo_team: string;
+          photo_width: number;
+          role: Database["public"]["Enums"]["user_role"];
+          status: string;
+          tag_x: number;
+          tag_y: number;
+        }[];
+      };
+      invitation_token_hash: { Args: { p_token: string }; Returns: string };
       is_active_user: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_published_photo: { Args: { p_photo_id: string }; Returns: boolean };

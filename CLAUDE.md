@@ -48,5 +48,5 @@ The mockups are in `design/*.dc.html`. They are the visual and behavioural refer
 - Before calling something done, `pnpm check` must pass (it runs `pnpm lint`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`). Use `pnpm format` to fix formatting. Markdown files are not formatted by Prettier.
 - This is Next.js 16: APIs differ from older versions (e.g. middleware is now `proxy`). Cache Components is deliberately **off**: pages that read the session just render per request. Check `AGENTS.md` and the docs bundled in `node_modules/next/dist/docs/` before writing Next.js code.
 - **Production:** setup and the `pnpm prod:*` scripts are in `docs/infrastructure.md`. Only run `prod:*` scripts when the maintainer asks.
-- **Supabase in code:** use `createClient()` / `getCurrentUser()` from `src/lib/supabase/server.ts` (acts as the user, goes through RLS). The secret key is only for local scripts in `scripts/`; the app never uses it until a phase explicitly needs it.
+- **Supabase in code:** use `createClient()` / `getCurrentUser()` from `src/lib/supabase/server.ts` (acts as the user, goes through RLS). The secret key is for local scripts in `scripts/`; in the app it is used only by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation. Do not use it anywhere else.
 - If something in the spec is unclear, ask before inventing.

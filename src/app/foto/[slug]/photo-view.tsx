@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { InviteButton } from "@/components/invite-button";
 import { useState, type ReactNode } from "react";
 
 export type PhotoTag = {
@@ -9,7 +10,7 @@ export type PhotoTag = {
   x: number;
   y: number;
   // null = unidentified «?» face
-  person: { name: string; slug: string; claimed: boolean } | null;
+  person: { id: string; name: string; slug: string; claimed: boolean } | null;
 };
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   height: number;
   alt: string;
   tags: PhotoTag[];
+  // Signed-in, unblocked users can invite people without an account.
+  canInvite: boolean;
   // Server-rendered pieces placed around the interactive parts.
   heading: ReactNode;
   details: ReactNode;
@@ -33,6 +36,7 @@ export function PhotoView({
   height,
   alt,
   tags,
+  canInvite,
   heading,
   details,
   actions,
@@ -169,7 +173,7 @@ export function PhotoView({
                 return (
                   <li
                     key={tag.id}
-                    className={`flex items-center gap-3 rounded-lg px-2.5 py-1 ${selected ? "bg-[#242424]" : ""}`}
+                    className={`flex flex-wrap items-center gap-x-3 rounded-lg px-2.5 py-1 ${selected ? "bg-[#242424]" : ""}`}
                   >
                     <button
                       type="button"
@@ -199,6 +203,13 @@ export function PhotoView({
                         </span>
                       </span>
                     </button>
+                    {canInvite && tag.person && !tag.person.claimed && (
+                      <InviteButton
+                        personId={tag.person.id}
+                        personName={tag.person.name}
+                        tagId={tag.id}
+                      />
+                    )}
                     {tag.person && (
                       <Link
                         href={`/persona/${tag.person.slug}`}

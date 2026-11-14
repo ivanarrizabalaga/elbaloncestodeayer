@@ -38,11 +38,12 @@ Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue
   |---|---|
   | `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview |
   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Production, Preview |
-  | `CRON_SECRET` | Production |
+  | `CRON_SECRET` | Production (Sensitive) |
+  | `SUPABASE_SECRET_KEY` | Production (Sensitive). Only used to create invited accounts |
   | `NEXT_PUBLIC_IMAGES_URL` | Production, Preview |
   | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_ORIGINALS_BUCKET` | Production |
 
-  `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is **not** in Vercel.
+  `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is only used by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation (sign-ups are disabled).
 - `vercel.json`: functions region `dub1` and a daily cron (06:00 UTC) calling `/api/keep-alive`, which runs a light query so Supabase Free does not pause the project after a week of inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`.
 - Previews use the production database (there is only one Supabase project). Signing in does not work on previews: magic links always point to the production domain.
 
