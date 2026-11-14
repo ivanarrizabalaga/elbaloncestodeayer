@@ -147,3 +147,16 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# --- El baloncesto de ayer ---
+# Contenido real: nunca al repo (es público)
+instagram-export/
+data/
+*.zip
+
+# Supabase CLI (local)
+supabase/.branches
+supabase/.temp
+
+# Vercel
+.vercel
