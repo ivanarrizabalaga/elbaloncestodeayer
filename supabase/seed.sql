@@ -47,6 +47,10 @@ insert into public.people (id, full_name, slug, claimed_by, bio) values
   ('b0000000-0000-0000-0000-000000000011', 'Miguel Ángel Sastre', 'miguel-angel-sastre', null, null),
   ('b0000000-0000-0000-0000-000000000012', 'Ramón Vidal', 'ramon-vidal', null, null);
 
+-- A duplicate already merged into Pepe: /persona/pepe-ferran-2 redirects to /persona/pepe-ferran.
+insert into public.people (id, full_name, slug, merged_into) values
+  ('b0000000-0000-0000-0000-000000000013', 'Pepe Ferran', 'pepe-ferran-2', 'b0000000-0000-0000-0000-000000000001');
+
 -- ---------------------------------------------------------------------------
 -- Photos: 8 published across three decades, 1 draft (only admins see it).
 -- ---------------------------------------------------------------------------
