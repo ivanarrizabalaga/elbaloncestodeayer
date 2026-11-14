@@ -38,6 +38,7 @@ export default async function UploadPage() {
           <PhotoGrid
             photos={drafts.map((d) => ({
               ...d,
+              href: `/admin/fotos/${d.id}`,
               caption:
                 [d.season_label, d.team].filter(Boolean).join(" · ") ||
                 "Sin datos",

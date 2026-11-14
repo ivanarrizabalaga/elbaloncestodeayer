@@ -11,6 +11,8 @@ export type GridPhoto = {
   height: number | null;
   // Optional line under the thumbnail, e.g. «Liga provincial · 8 etiquetados».
   caption?: string;
+  // Where the thumbnail links to; defaults to the public photo page.
+  href?: string;
 };
 
 // Grid of photo thumbnails linking to /foto/[slug]. Used on photo, person and home pages.
@@ -20,7 +22,7 @@ export function PhotoGrid({ photos }: { photos: GridPhoto[] }) {
       {photos.map((photo) => (
         <li key={photo.id}>
           <Link
-            href={`/foto/${photo.slug}`}
+            href={photo.href ?? `/foto/${photo.slug}`}
             className="group flex flex-col gap-2"
           >
             <span className="block aspect-[3/2] overflow-hidden rounded-md bg-surface-3">
