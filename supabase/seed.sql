@@ -146,3 +146,14 @@ insert into public.memories (photo_id, author_id, body, hidden_at, created_at) v
    'La camiseta me quedaba enorme: era la de mi hermano.', null, now() - interval '3 days'),
   ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000002',
    'Recuerdo oculto por moderación.', now(), now() - interval '2 days');
+
+-- ---------------------------------------------------------------------------
+-- A pending invitation for Luis (tag 2 of the 1984–85 team photo), to try the flow locally:
+-- http://localhost:3000/invitacion/prueba-luis  (local only: the token is public in this repo).
+-- ---------------------------------------------------------------------------
+
+insert into public.invitations (token_hash, role, person_id, tag_id, invited_by)
+select public.invitation_token_hash('prueba-luis'), 'user', t.person_id, t.id,
+       'a0000000-0000-0000-0000-000000000001'
+from public.tags t
+where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 2;

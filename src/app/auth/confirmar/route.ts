@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = safeNext(searchParams.get("next"));
+  const next = safeNext(searchParams.get("next"), request.nextUrl.origin);
 
   if (tokenHash && type) {
     const supabase = await createClient();
@@ -25,7 +25,16 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(new URL("/entrar?error=enlace", request.url));
 }
 
-// Only allow redirects within this site.
-function safeNext(next: string | null): string {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+// Only allow redirects within this site. `next` is a path, or the absolute redirect URL the
+// email template adds ({{ .RedirectTo }}, e.g. back to an invitation).
+function safeNext(next: string | null, origin: string): string {
+  if (!next) return "/";
+  if (next.startsWith("/") && !next.startsWith("//")) return next;
+  try {
+    const url = new URL(next);
+    if (url.origin === origin) return `${url.pathname}${url.search}`;
+  } catch {
+    // Not a URL.
+  }
+  return "/";
 }
