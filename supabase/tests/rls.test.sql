@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(30);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, bypassing RLS)
@@ -28,6 +28,10 @@ insert into public.photos (id, slug, status) values
 
 insert into public.people (id, full_name, slug) values
   ('20000000-0000-0000-0000-000000000001', 'Pepe Inventado', 'pepe-inventado');
+
+insert into public.memories (id, photo_id, author_id, body) values
+  ('30000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001',
+   '00000000-0000-0000-0000-00000000000a', 'Recuerdo del admin');
 
 -- Helper: act as a given user (null = anonymous visitor).
 create function pg_temp.act_as(p_user uuid) returns void language plpgsql as $$
@@ -122,6 +126,52 @@ select throws_ok(
   '42501',
   null,
   'user cannot invite an admin'
+);
+
+-- Memories: authors edit and delete their own, and nothing else.
+select lives_ok(
+  $$insert into public.memories (id, photo_id, author_id, body)
+    values ('30000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001',
+            '00000000-0000-0000-0000-00000000000b', 'Primera versión')$$,
+  'user can add a memory to a published photo'
+);
+select lives_ok(
+  $$update public.memories set body = 'Versión corregida' where id = '30000000-0000-0000-0000-000000000002'$$,
+  'author can edit their memory'
+);
+select throws_ok(
+  $$update public.memories set hidden_at = now() where id = '30000000-0000-0000-0000-000000000002'$$,
+  '42501',
+  null,
+  'author cannot hide memories (moderation is for admins)'
+);
+select throws_ok(
+  $$update public.memories set photo_id = '10000000-0000-0000-0000-000000000002'
+    where id = '30000000-0000-0000-0000-000000000002'$$,
+  '42501',
+  null,
+  'author cannot move a memory to another photo'
+);
+update public.memories set body = 'Hackeado' where id = '30000000-0000-0000-0000-000000000001';
+select is(
+  (select body from public.memories where id = '30000000-0000-0000-0000-000000000001'),
+  'Recuerdo del admin',
+  'user cannot edit someone else''s memory'
+);
+delete from public.memories where id = '30000000-0000-0000-0000-000000000001';
+select is(
+  (select count(*) from public.memories where id = '30000000-0000-0000-0000-000000000001'),
+  1::bigint,
+  'user cannot delete someone else''s memory'
+);
+select lives_ok(
+  $$delete from public.memories where id = '30000000-0000-0000-0000-000000000002'$$,
+  'author can delete their memory'
+);
+select is(
+  (select count(*) from public.memories where id = '30000000-0000-0000-0000-000000000002'),
+  0::bigint,
+  'the deleted memory is gone'
 );
 
 -- ---------------------------------------------------------------------------

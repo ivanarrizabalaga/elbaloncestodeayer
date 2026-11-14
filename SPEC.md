@@ -31,6 +31,7 @@ Two roles: **user** and **admin**. All admins can do exactly the same things. Vi
 | Tag someone in a photo (published immediately) | | ✓ | ✓ |
 | Suggest a name for an unknown «?» face | | ✓ (goes to review) | ✓ (direct) |
 | Add a memory to a photo (published immediately) | | ✓ | ✓ |
+| Edit or delete their own memories | | ✓ | ✓ |
 | Invite a tagged person | | ✓ | ✓ |
 | Claim their person profile («Este soy yo») | | ✓ | ✓ |
 | Remove their own tag (immediate) | | ✓ | ✓ |
@@ -128,7 +129,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 **Invitation**
 1. Someone tags "Pepe" and taps *Invite* → an `invitation` linked to the person is created → a link to share on WhatsApp (with pre-filled text).
 2. Pepe opens the link → sees the photo with his face marked → «¿Eres tú?».
-3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` → welcome.
+3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` (`people.claimed_by`) and, if his `display_name` is empty, it is set to the person's `full_name` (he can change it later) → welcome.
 4. *Not me* («No soy yo») → creates a `review_item` of kind `tag_dispute` (can propose the correct name).
 
 **Invite an admin** — same flow, with `role = admin`; if the email already has an account, it is promoted on acceptance.
@@ -203,3 +204,13 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 - Privacy page stating who runs the archive and how to request changes.
 - No tracking cookies or invasive analytics.
 - The repo's MIT licence covers **only the code**; the photos belong to their authors or to whoever contributes them.
+
+---
+
+## 12. Open questions / future work
+
+Decisions deliberately postponed. Revisit them in the phase noted.
+
+- **Users creating people while tagging** (phase 5). Today only admins create people; users tag existing people or leave a «?» face and suggest a name, which goes to review. Revisit if the review queue becomes a bottleneck; the risk is duplicate people ("Pepe García" vs "Pepe Garcia").
+- **Account deletion / right to be forgotten** (phase 6). Today contributions survive account deletion without an author (`on delete set null`). Proposal to evaluate: delete the user's memories, release their claimed person, keep tags (they describe the photo, not the user). Document the outcome on the privacy page.
+- **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.

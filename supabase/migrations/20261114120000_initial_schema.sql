@@ -398,14 +398,26 @@ create policy "memories: users write on published photos" on public.memories
     and public.is_published_photo(photo_id)
   );
 
-create policy "memories: admin update" on public.memories
+-- Authors edit and delete their own memories; admins hide or delete any.
+-- Only body and hidden_at can change (column privilege). Authors can neither hide nor
+-- un-hide: they may only touch rows that are visible and must leave them visible.
+create policy "memories: author edits own, admin moderates" on public.memories
   for update to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+  using (
+    public.is_admin()
+    or (author_id = (select auth.uid()) and hidden_at is null and public.is_active_user())
+  )
+  with check (
+    public.is_admin()
+    or (author_id = (select auth.uid()) and hidden_at is null)
+  );
 
-create policy "memories: admin delete" on public.memories
+create policy "memories: author deletes own, admin deletes any" on public.memories
   for delete to authenticated
-  using (public.is_admin());
+  using (public.is_admin() or author_id = (select auth.uid()));
+
+revoke update on public.memories from anon, authenticated;
+grant update (body, hidden_at) on public.memories to authenticated;
 
 -- invitations: users invite as 'user'; only admins invite admins.
 -- Looking up an invitation by token (anonymous) and accepting it are functions in phase 5.
