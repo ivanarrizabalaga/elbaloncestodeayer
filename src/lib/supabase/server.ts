@@ -48,6 +48,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     .select("display_name, role, blocked_at")
     .eq("id", claims.sub)
     .maybeSingle();
+  // A valid token whose account no longer exists (deleted, or a local db:reset): treat as a
+  // visitor. The JWT alone is not enough to act on anything.
+  if (!profile) return null;
 
   return {
     id: claims.sub,
