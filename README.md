@@ -55,6 +55,8 @@ pnpm db:stop
 
 The seed has made-up people, teams and placeholder images (`public/seed/`), e.g. http://localhost:3000/foto/cb-ribera-1984-85-equipo.
 
+Uploading photos locally (`/admin/subir`) needs the R2 dev buckets: add the `R2_*` and `NEXT_PUBLIC_IMAGES_URL` variables from `.env.example` to `.env.local` (`pnpm env:local` keeps them).
+
 Environment variables are listed in `.env.example`.
 
 ## Production

@@ -13,7 +13,7 @@ No secrets in this file or anywhere in the repo. They live in the providers, in 
 | Web app | Vercel (Hobby) | Project `elbaloncestodeayer`, functions in `dub1` (Dublin) |
 | Database + Auth | Supabase (Free) | Project `elbaloncestodeayer`, ref `nardwkpviokncuyuinmq`, `eu-west-1` (Ireland) |
 | Email (magic links) | Resend (Free) | Domain `mail.elbaloncestodeayer.com`, `eu-west-1` |
-| Images | Cloudflare R2 | Phase 3 |
+| Images | Cloudflare R2 | 4 buckets in the EU jurisdiction (production and dev × public and originals) |
 
 ## DNS (Cloudflare)
 
@@ -23,6 +23,7 @@ No secrets in this file or anywhere in the repo. They live in the providers, in 
 | `www` | CNAME | Vercel | Redirects to the apex (set in Vercel) |
 | `resend._domainkey.mail` | TXT | DKIM key | Resend signature |
 | `send.mail`, `rsend.mail` | CNAME | Resend | Resend sending (SPF / bounces) |
+| `img` | R2 custom domain (proxied, orange cloud) | Public derivatives bucket | Images, TLS 1.2 minimum |
 | `@` | MX ×5 + TXT (SPF) | Namecheap email forwarding | Incoming mail, from the registrar; may be replaced by Cloudflare Email Routing |
 
 Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue certificates.
@@ -38,6 +39,8 @@ Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue
   | `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview |
   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Production, Preview |
   | `CRON_SECRET` | Production |
+  | `NEXT_PUBLIC_IMAGES_URL` | Production, Preview |
+  | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_ORIGINALS_BUCKET` | Production |
 
   `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is **not** in Vercel.
 - `vercel.json`: functions region `dub1` and a daily cron (06:00 UTC) calling `/api/keep-alive`, which runs a light query so Supabase Free does not pause the project after a week of inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`.
@@ -60,6 +63,22 @@ Linked from the repo with `pnpm exec supabase login` and `pnpm exec supabase lin
 - Domain `mail.elbaloncestodeayer.com` (a subdomain, so the apex keeps its own mail setup and reputation), verified with the DNS records above.
 - One API key with "Sending access" restricted to that domain. Supabase uses it as the SMTP password (`smtp.resend.com:465`, user `resend`, sender `no-reply@mail.elbaloncestodeayer.com`).
 - Free plan: 3,000 emails/month, 100/day. Supabase limits magic links to 30/hour (`[remotes.production.auth.rate_limit]`).
+
+## Cloudflare R2 (images)
+
+Four buckets, all created with the **EU jurisdiction** (it cannot be changed later; their S3 endpoint is `https://<account-id>.eu.r2.cloudflarestorage.com`):
+
+| Bucket | Access | Use |
+|---|---|---|
+| `elbaloncestodeayer-public` | Public through `img.elbaloncestodeayer.com` (r2.dev URL disabled) | Production derivatives |
+| `elbaloncestodeayer-originals` | Private | Production originals |
+| `elbaloncestodeayer-dev-public` | Public through its r2.dev URL | Local development |
+| `elbaloncestodeayer-dev-originals` | Private | Local development |
+
+- Layout: `photos/<id>/original` (originals bucket), `photos/<id>/thumb.webp` (~480 px) and `photos/<id>/large.webp` (~1600 px) in the public bucket. `photos.storage_key` is `photos/<id>`.
+- Uploads: the browser PUTs the original with a presigned URL (10 minutes), then a Server Action makes the derivatives with `sharp` and creates the draft.
+- CORS on both originals buckets: `PUT` with `content-type` from `https://elbaloncestodeayer.com` and `http://localhost:3000`.
+- One Account API token, "Object Read & Write" on the four buckets. Its keys are server-only (`R2_*`).
 
 ## `.env.prod` and the `prod:*` scripts
 

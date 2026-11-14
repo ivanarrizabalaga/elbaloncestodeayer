@@ -1,6 +1,7 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { supabasePublishableKey, supabaseUrl } from "@/lib/env";
 import type { Database } from "./database.types";
 
@@ -54,4 +55,13 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     displayName: profile?.display_name ?? null,
     isAdmin: profile?.role === "admin" && !profile.blocked_at,
   };
+}
+
+// For admin pages and Server Actions. Visitors go to sign in; signed-in non-admins get a 404
+// (no hint that the page exists). RLS enforces the same rule on every write.
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await getCurrentUser();
+  if (!user) redirect("/entrar");
+  if (!user.isAdmin) notFound();
+  return user;
 }

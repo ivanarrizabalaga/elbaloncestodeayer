@@ -17,6 +17,14 @@ export async function SiteHeader() {
 
         {user ? (
           <div className="flex items-center gap-3 text-sm">
+            {user.isAdmin && (
+              <Link
+                href="/admin/subir"
+                className="flex min-h-11 items-center rounded-full bg-accent px-4 font-semibold text-on-accent"
+              >
+                Subir foto
+              </Link>
+            )}
             <span className="hidden text-muted sm:inline">
               {user.displayName ?? user.email}
             </span>
