@@ -19,7 +19,11 @@
     "db:types": "supabase gen types typescript > src/lib/supabase/database.types.ts && prettier --write src/lib/supabase/database.types.ts",
     "env:local": "sh scripts/env-local.sh",
     "admin:list": "node --env-file=.env.local scripts/admin.mts list",
-    "admin:grant": "node --env-file=.env.local scripts/admin.mts grant"
+    "admin:grant": "node --env-file=.env.local scripts/admin.mts grant",
+    "prod:db-push": "sh scripts/prod.sh supabase db push",
+    "prod:config-diff": "sh scripts/prod.sh supabase config diff",
+    "prod:config-push": "sh scripts/prod.sh supabase config push",
+    "prod:admin": "node --env-file=.env.prod scripts/admin.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
