@@ -36,6 +36,7 @@ Two roles: **user** and **admin**. All admins can do exactly the same things. Vi
 | Claim their person profile («Este soy yo») | | ✓ | ✓ |
 | Remove their own tag (immediate) | | ✓ | ✓ |
 | Request a photo withdrawal | ✓ (form) | ✓ | ✓ |
+| Withdraw a photo they proposed (immediate) | | ✓ | ✓ |
 | Propose photos | | ✓ (goes to review) | — |
 | Upload, edit, publish and withdraw photos | | | ✓ |
 | Work the review queue | | | ✓ |
@@ -137,6 +138,12 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 **Remove own tag** — immediate (`removed_at`), recorded in `activity`.
 
 **Photo withdrawal** — priority `review_item`; the admin moves it to `withdrawn` (no longer visible; the original is not deleted until confirmed).
+
+**Withdrawing your own photo** — the photos belong to whoever contributes them (§11), so the account that proposed a photo (`proposed_by`) can always take it down, without review:
+- Still `proposed` (nothing else depends on it): it is deleted.
+- `published`: it moves to `withdrawn` immediately and is recorded in `activity`. Tags and memories are kept but hidden, so the work of others is not lost. Admins cannot republish it unless the contributor asks. The original follows the usual rule (deleted only once confirmed).
+- Photos uploaded by admins on someone else's behalf (e.g. the Instagram import) have no `proposed_by`; they follow the normal withdrawal request.
+- Implemented as a `SECURITY DEFINER` function (`withdraw_own_photo`) in phase 5.
 
 **Suggested name** — `review_item`; on acceptance an existing person is assigned or a new one is created.
 
