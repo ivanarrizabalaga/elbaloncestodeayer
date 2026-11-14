@@ -46,5 +46,6 @@ The mockups are in `design/*.dc.html`. They are the visual and behavioural refer
 - One phase of `SPEC.md` §9 per branch and PR (large phases may be split into several small PRs). Small, reviewable PRs.
 - If a decision changes something in `SPEC.md`, update it in the same PR.
 - Before calling something done, `pnpm check` must pass (it runs `pnpm lint`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`). Use `pnpm format` to fix formatting. Markdown files are not formatted by Prettier.
-- This is Next.js 16: APIs differ from older versions (e.g. middleware is now `proxy`, Cache Components are on). Check `AGENTS.md` and the docs bundled in `node_modules/next/dist/docs/` before writing Next.js code.
+- This is Next.js 16: APIs differ from older versions (e.g. middleware is now `proxy`). Cache Components is deliberately **off**: pages that read the session just render per request. Check `AGENTS.md` and the docs bundled in `node_modules/next/dist/docs/` before writing Next.js code.
+- **Supabase in code:** use `createClient()` / `getCurrentUser()` from `src/lib/supabase/server.ts` (acts as the user, goes through RLS). The secret key is only for local scripts in `scripts/`; the app never uses it until a phase explicitly needs it.
 - If something in the spec is unclear, ask before inventing.

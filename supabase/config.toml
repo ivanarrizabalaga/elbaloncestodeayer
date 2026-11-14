@@ -249,6 +249,16 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Spanish templates. They link to /auth/confirmar with a token_hash (works across browsers,
+# unlike PKCE). Production uses the same HTML, pasted in the Supabase dashboard.
+[auth.email.template.magic_link]
+subject = "Tu enlace para entrar en El baloncesto de ayer"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.email.template.confirmation]
+subject = "Tu enlace para entrar en El baloncesto de ayer"
+content_path = "./supabase/templates/magic-link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

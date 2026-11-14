@@ -27,9 +27,21 @@ Requirements: Node 22 (see `.nvmrc`), pnpm (`corepack enable pnpm`) and Docker (
 ```bash
 pnpm install
 pnpm db:start     # local Supabase: Postgres, Auth, Studio (http://127.0.0.1:54323), Mailpit (http://127.0.0.1:54324)
+pnpm env:local    # writes .env.local with the local Supabase keys
 pnpm dev          # http://localhost:3000
 pnpm check        # lint + typecheck + format check + build
 ```
+
+Signing in locally: accounts are created by invitation (phase 5), so create one with `pnpm admin:grant you@example.test`, then request a link at http://localhost:3000/entrar. The email does not leave your machine: open it in Mailpit (http://127.0.0.1:54324).
+
+Admins:
+
+```bash
+pnpm admin:list
+pnpm admin:grant <email>   # makes <email> an admin, creating the account if needed
+```
+
+Both use `.env.local`. To run them against another project: `node --env-file=<file> scripts/admin.mts grant <email>` (asks for confirmation when the target is not local).
 
 Database:
 
@@ -41,7 +53,7 @@ pnpm db:types     # regenerate src/lib/supabase/database.types.ts after a schema
 pnpm db:stop
 ```
 
-Environment variables are added in the next phase-1 PR.
+Environment variables are listed in `.env.example`.
 
 ## Licence
 
