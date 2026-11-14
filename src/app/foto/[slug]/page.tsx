@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { PhotoGrid } from "@/components/photo-grid";
+import { WhatsAppShare } from "@/components/whatsapp-share";
 import { decadeLabel, photoLabel, photoSrc, photoTitle } from "@/lib/photos";
+import { initials, siteOrigin } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { PhotoView, type PhotoTag } from "./photo-view";
 
@@ -179,13 +181,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           ) : null
         }
         actions={
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`}
-            className="mt-1.5 inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line-strong font-medium"
-          >
-            <ShareIcon />
-            Compartir por WhatsApp
-          </a>
+          <WhatsAppShare text={shareText} url={shareUrl} className="mt-1.5" />
         }
         story={
           photo.story || memories.length > 0 ? (
@@ -248,67 +244,9 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           >
             Más de la temporada {photo.season_label}
           </h2>
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-            {morePhotos.map((other) => (
-              <li key={other.id}>
-                <Link
-                  href={`/foto/${other.slug}`}
-                  className="block aspect-[3/2] overflow-hidden rounded-md bg-surface-3"
-                >
-                  {other.storage_key && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={photoSrc(other.storage_key)}
-                      width={other.width ?? undefined}
-                      height={other.height ?? undefined}
-                      alt={`Foto: ${photoLabel(other)}`}
-                      loading="lazy"
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <PhotoGrid photos={morePhotos} />
         </section>
       )}
     </main>
-  );
-}
-
-// Absolute URL of this deployment, for share links (works locally, on previews and in production).
-async function siteOrigin(): Promise<string> {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return `${proto}://${host}`;
-}
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-function ShareIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
-    </svg>
   );
 }
