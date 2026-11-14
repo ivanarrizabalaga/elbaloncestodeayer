@@ -38,3 +38,21 @@ export function decadeLabel(year: number | null): string | null {
   if (year === null) return null;
   return `Años ${String(Math.floor(year / 10) * 10).slice(-2)}`;
 }
+
+// «1984–85» -> 1984/1985, «1979» -> 1979/1979, «Navidad de 1983» -> 1983/1983.
+// The free-text label is what people see; the years drive the decade filter.
+export function parseSeason(label: string): {
+  yearFrom: number | null;
+  yearTo: number | null;
+} {
+  const match = label.match(
+    /(1[89]\d{2}|20\d{2})(?:\s*[-–\/]\s*(\d{4}|\d{2}))?/,
+  );
+  if (!match) return { yearFrom: null, yearTo: null };
+  const from = Number(match[1]);
+  if (!match[2]) return { yearFrom: from, yearTo: from };
+  let to = Number(match[2]);
+  if (match[2].length === 2) to = Math.floor(from / 100) * 100 + to;
+  if (to < from) to += 100; // 1999–00
+  return { yearFrom: from, yearTo: to };
+}

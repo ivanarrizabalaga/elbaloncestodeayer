@@ -6,7 +6,7 @@ import { PhotoGrid } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { decadeLabel, photoLabel, photoSrc, photoTitle } from "@/lib/photos";
 import { initials, siteOrigin } from "@/lib/site";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { PhotoView, type PhotoTag } from "./photo-view";
 
 // RLS decides what is visible: published photos for everyone, drafts only for admins.
@@ -39,6 +39,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
   }
 
   const supabase = await createClient();
+  const user = await getCurrentUser();
   const [tagsResult, memoriesResult, moreResult] = await Promise.all([
     supabase
       .from("tags")
@@ -133,11 +134,22 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
         <span className="text-fg">{photoLabel(photo)}</span>
       </nav>
 
-      {photo.status !== "published" && (
-        <p className="rounded-lg border border-accent px-4 py-3 text-sm">
-          Esta foto no es pública (estado: {photo.status}). Solo la ves porque
-          eres admin.
-        </p>
+      {user?.isAdmin && (
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-2 text-sm ${photo.status === "published" ? "bg-surface-2" : "border border-accent"}`}
+        >
+          <span>
+            {photo.status === "published"
+              ? "Eres admin."
+              : `Esta foto no es pública (estado: ${photo.status}). Solo la ves porque eres admin.`}
+          </span>
+          <Link
+            href={`/admin/fotos/${photo.id}`}
+            className="inline-flex min-h-11 items-center font-semibold text-accent"
+          >
+            Editar foto →
+          </Link>
+        </div>
       )}
 
       <PhotoView
