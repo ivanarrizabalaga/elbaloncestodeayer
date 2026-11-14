@@ -173,8 +173,8 @@ One-off, from Jorge's account export (Instagram → "Download your information",
 ## 8. Infrastructure
 
 - **Next.js** (App Router, TypeScript, Tailwind) on **Vercel** (Hobby).
-- **Supabase**: Postgres + Auth (email magic link) + RLS. Project in the **EU (Frankfurt)** region.
-- **Transactional email** for magic links through a custom SMTP provider (Supabase's built-in email only reaches project members and is heavily rate-limited).
+- **Supabase**: Postgres + Auth (email magic link) + RLS. Project in the **EU (Ireland, eu-west-1)** region; Vercel functions run in Dublin (`dub1`) next to it.
+- **Transactional email** for magic links through a custom SMTP provider, **Resend** (Supabase's built-in email only reaches project members and is heavily rate-limited).
 - **Cloudflare R2** for images.
 - **Daily cron** (Vercel Cron) running a light query so Supabase Free does not pause the project.
 - Versioned SQL migrations in `supabase/migrations/`.

@@ -71,10 +71,11 @@ async function grantAdmin(input: string | undefined) {
     console.log(`Created account for ${email}.`);
   }
 
+  // Upsert, not update: an account created before the schema existed has no profile row
+  // (the handle_new_user trigger only covers new accounts).
   const { error } = await supabase
     .from("profiles")
-    .update({ role: "admin", blocked_at: null })
-    .eq("id", userId);
+    .upsert({ id: userId, role: "admin", blocked_at: null });
   if (error) fail(error.message);
 
   console.log(

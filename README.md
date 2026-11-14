@@ -41,7 +41,7 @@ pnpm admin:list
 pnpm admin:grant <email>   # makes <email> an admin, creating the account if needed
 ```
 
-Both use `.env.local`. To run them against another project: `node --env-file=<file> scripts/admin.mts grant <email>` (asks for confirmation when the target is not local).
+Both use `.env.local`. For production use `pnpm prod:admin list|grant <email>`, which reads `.env.prod` and asks for confirmation.
 
 Database:
 
@@ -54,6 +54,10 @@ pnpm db:stop
 ```
 
 Environment variables are listed in `.env.example`.
+
+## Production
+
+Hosted on Vercel (https://elbaloncestodeayer.com) with Supabase, Resend for email and DNS on Cloudflare. How it is set up, and the `pnpm prod:*` scripts, are in [`docs/infrastructure.md`](docs/infrastructure.md).
 
 ## Licence
 
