@@ -22,15 +22,26 @@ Next.js · TypeScript · Tailwind · Supabase (Postgres, Auth, RLS) · Cloudflar
 
 ## Local development
 
-Requirements: Node 22 (see `.nvmrc`) and pnpm (`corepack enable pnpm`).
+Requirements: Node 22 (see `.nvmrc`), pnpm (`corepack enable pnpm`) and Docker (for the local Supabase stack). The Supabase CLI is a dev dependency, no global install needed.
 
 ```bash
 pnpm install
+pnpm db:start     # local Supabase: Postgres, Auth, Studio (http://127.0.0.1:54323), Mailpit (http://127.0.0.1:54324)
 pnpm dev          # http://localhost:3000
 pnpm check        # lint + typecheck + format check + build
 ```
 
-Supabase (local, via Docker) and environment variables are added in the next phase-1 PRs.
+Database:
+
+```bash
+pnpm db:reset     # re-create the local DB from supabase/migrations + supabase/seed.sql
+pnpm db:test      # pgTAP tests (supabase/tests), mainly RLS
+pnpm db:lint      # lint SQL functions
+pnpm db:types     # regenerate src/lib/supabase/database.types.ts after a schema change
+pnpm db:stop
+```
+
+Environment variables are added in the next phase-1 PR.
 
 ## Licence
 

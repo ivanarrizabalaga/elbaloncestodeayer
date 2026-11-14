@@ -85,13 +85,14 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 
 ## 4. Data model (Postgres / Supabase)
 
-All tables have RLS enabled.
+All tables have RLS enabled. The schema lives in `supabase/migrations/`; this section is the summary.
 
-**profiles** — one row per user with an account (`id` = `auth.users.id`)
-- `display_name`, `role` (`user` | `admin`), `person_id` (nullable, unique: the person they have claimed), `invited_by`, `blocked_at`, `created_at`
+**profiles** — one row per user with an account (`id` = `auth.users.id`), created automatically on sign-up
+- `display_name` (empty until the user sets it; never derived from the email), `role` (`user` | `admin`), `invited_by`, `blocked_at`, `created_at`
+- Only the owner and admins can read a profile. Public names are exposed through the `profile_names` view (`id`, `display_name`).
 
 **people** — people who appear in photos (with or without an account)
-- `full_name`, `slug`, `bio`, `claimed_by` (profile, nullable), `merged_into` (nullable), `created_by`, `created_at`
+- `full_name`, `slug`, `bio`, `claimed_by` (profile, nullable, unique: the single link between an account and its person), `merged_into` (nullable), `created_by`, `created_at`
 
 **photos**
 - `slug`, `status` (`proposed` | `draft` | `published` | `rejected` | `withdrawn`)

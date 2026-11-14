@@ -20,8 +20,9 @@ Guide for working in this repo. Read [`SPEC.md`](SPEC.md) first: it explains wha
 - **Server components by default.** Client components only where there is real interaction (tagging on the photo, forms, tabs).
 - **Mutations with Server Actions** or simple route handlers. No global state or data-fetching libraries.
 - **Styling with Tailwind** using the colour and typography tokens from `SPEC.md` (§3, Visual identity), defined once in the theme config.
-- **Database:** every schema change is a SQL migration in `supabase/migrations/`. Types are generated with the Supabase CLI, never by hand.
-- **Tests:** keep them few and focused on what matters most: RLS policies, tested with pgTAP (`supabase test db`). No UI tests for now.
+- **Database:** every schema change is a new SQL migration in `supabase/migrations/` (never edit one that is already merged). After a change run `pnpm db:reset`, `pnpm db:types` and `pnpm db:test`. Types are generated, never written by hand.
+- **Permissions:** simple row rules live in RLS policies. Multi-step flows or column-level rules (claim profile, remove own tag, accept invitation, role changes) are `SECURITY DEFINER` functions with `set search_path = ''` that check permissions themselves.
+- **Tests:** keep them few and focused on what matters most: RLS policies, tested with pgTAP in `supabase/tests/` (`pnpm db:test`). Every new policy or permission function gets a test. No UI tests for now.
 - **Accessibility:** real elements (`<button>`, `<a>`, `<label>`), `alt` on images, visible focus, touch targets ≥ 44 px, AA contrast.
 - **Mobile first:** most people will arrive from a WhatsApp link.
 
