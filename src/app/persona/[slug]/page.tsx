@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
+import { FaceCrop } from "@/components/face-crop";
 import { PhotoGrid, type GridPhoto } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { photoLabel, photoSrc } from "@/lib/photos";
@@ -152,8 +153,12 @@ export default async function PersonPage({
             x={portrait.x}
             y={portrait.y}
             alt={`${person.full_name} en una foto de ${photoLabel(portrait.photo)}`}
-            caption={`De la foto de ${photoLabel(portrait.photo)}`}
-          />
+            className="aspect-[4/5] w-40 flex-none rounded-lg sm:w-auto sm:min-w-60 sm:flex-[0_1_340px]"
+          >
+            <span className="absolute bottom-3 left-3 hidden rounded-md bg-bg/85 px-2.5 py-1 text-xs text-[#c8c8c8] sm:block">
+              De la foto de {photoLabel(portrait.photo)}
+            </span>
+          </FaceCrop>
         )}
         <div className="flex min-w-0 flex-[999_1_480px] flex-col gap-4">
           {person.claimed_by && (
@@ -255,41 +260,5 @@ export default async function PersonPage({
         )}
       </section>
     </main>
-  );
-}
-
-// A zoomed-in window on the photo, centred on the person's tag.
-// The image is ZOOM times wider than the frame; translate(%) uses the image's own size.
-const ZOOM = 1 / 0.22;
-
-function FaceCrop({
-  src,
-  x,
-  y,
-  alt,
-  caption,
-}: {
-  src: string;
-  x: number;
-  y: number;
-  alt: string;
-  caption: string;
-}) {
-  return (
-    <figure className="relative m-0 aspect-[4/5] w-40 flex-none overflow-hidden rounded-lg bg-surface-3 sm:w-auto sm:min-w-60 sm:flex-[0_1_340px]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className="absolute top-[40%] left-1/2 max-w-none"
-        style={{
-          width: `${ZOOM * 100}%`,
-          transform: `translate(-${x * 100}%, -${y * 100}%)`,
-        }}
-      />
-      <figcaption className="absolute bottom-3 left-3 hidden rounded-md bg-bg/85 px-2.5 py-1 text-xs text-[#c8c8c8] sm:block">
-        {caption}
-      </figcaption>
-    </figure>
   );
 }
