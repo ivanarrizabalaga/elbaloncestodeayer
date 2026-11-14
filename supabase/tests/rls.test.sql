@@ -8,6 +8,10 @@ select plan(30);
 -- Fixtures (as postgres, bypassing RLS)
 -- ---------------------------------------------------------------------------
 
+-- Start from empty tables so seed data does not change the counts below.
+-- Everything runs in one transaction that is rolled back at the end.
+truncate public.photos, public.people, auth.users cascade;
+
 insert into auth.users (id, email, aud, role) values
   ('00000000-0000-0000-0000-00000000000a', 'admin@example.test', 'authenticated', 'authenticated'),
   ('00000000-0000-0000-0000-00000000000b', 'user@example.test', 'authenticated', 'authenticated'),
