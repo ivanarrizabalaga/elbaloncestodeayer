@@ -1,9 +1,23 @@
 // Small helpers shared by the public pages.
 
-// Phase 2 serves placeholder images from public/ (storage_key "seed/…").
-// Phase 3 points this at the R2 public domain and the generated derivatives.
-export function photoSrc(storageKey: string): string {
-  return `/${storageKey}`;
+export type ImageSize = "thumb" | "large";
+
+// storage_key "photos/<id>": derivatives at <NEXT_PUBLIC_IMAGES_URL>/photos/<id>/{thumb,large}.webp
+// (thumb ~480 px wide, large ~1600 px, generated on upload).
+// storage_key "seed/…": local placeholder files in public/ (test data only).
+export function photoSrc(
+  storageKey: string,
+  size: ImageSize = "large",
+): string {
+  if (storageKey.startsWith("seed/")) return `/${storageKey}`;
+  // NEXT_PUBLIC_* must be referenced literally so Next.js can inline it.
+  const base = process.env.NEXT_PUBLIC_IMAGES_URL;
+  if (!base) {
+    throw new Error(
+      "Missing environment variable NEXT_PUBLIC_IMAGES_URL. See .env.example.",
+    );
+  }
+  return `${base}/${storageKey}/${size}.webp`;
 }
 
 type Titled = { team: string | null; season_label: string | null };

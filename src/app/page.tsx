@@ -225,7 +225,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                         // Plain <img>: derivatives are generated at upload time (phase 3).
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={photoSrc(photo.storage_key)}
+                          src={photoSrc(photo.storage_key, "thumb")}
                           width={photo.width ?? undefined}
                           height={photo.height ?? undefined}
                           alt={`Foto: ${photoLabel(photo)}`}
