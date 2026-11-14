@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import sharp from "sharp";
+import { makeDerivatives, photoKeys } from "@/lib/derivatives";
 import { getOriginal, presignOriginalUpload, putPublic } from "@/lib/storage";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 
@@ -34,7 +34,10 @@ export async function startUpload(file: {
   }
 
   const id = crypto.randomUUID();
-  const uploadUrl = await presignOriginalUpload(originalKey(id), file.type);
+  const uploadUrl = await presignOriginalUpload(
+    photoKeys(id).original,
+    file.type,
+  );
   return { ok: true, id, uploadUrl };
 }
 
@@ -46,29 +49,11 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
   if (!UUID.test(id)) return { ok: false, error: "Subida no válida." };
 
   try {
-    const original = await getOriginal(originalKey(id));
-
-    // rotate() applies the EXIF orientation; limitInputPixels guards against huge files.
-    const image = sharp(original, { limitInputPixels: 200_000_000 }).rotate();
-    const large = await image
-      .clone()
-      .resize({
-        width: 1600,
-        height: 1600,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 82 })
-      .toBuffer({ resolveWithObject: true });
-    const thumb = await image
-      .clone()
-      .resize({ width: 480, withoutEnlargement: true })
-      .webp({ quality: 78 })
-      .toBuffer();
-
-    const storageKey = `photos/${id}`;
-    await putPublic(`${storageKey}/large.webp`, large.data, "image/webp");
-    await putPublic(`${storageKey}/thumb.webp`, thumb, "image/webp");
+    const keys = photoKeys(id);
+    const original = await getOriginal(keys.original);
+    const { large, thumb, width, height } = await makeDerivatives(original);
+    await putPublic(keys.large, large, "image/webp");
+    await putPublic(keys.thumb, thumb, "image/webp");
 
     // As the admin, through RLS (admins may insert photos).
     const supabase = await createClient();
@@ -77,9 +62,9 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
       // Temporary: the real slug is set when the photo is published.
       slug: `borrador-${id.slice(0, 8)}`,
       status: "draft",
-      storage_key: storageKey,
-      width: large.info.width,
-      height: large.info.height,
+      storage_key: keys.storageKey,
+      width,
+      height,
     });
     if (error) throw new Error(error.message);
   } catch (error) {
@@ -92,8 +77,4 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
 
   revalidatePath("/admin/subir");
   return { ok: true, id };
-}
-
-function originalKey(id: string): string {
-  return `photos/${id}/original`;
 }

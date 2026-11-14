@@ -90,7 +90,16 @@ pnpm prod:config-diff          # preview Auth config changes
 pnpm prod:config-push          # apply them
 pnpm prod:admin list           # list admins
 pnpm prod:admin grant <email>  # make someone admin (creates the account if needed)
+pnpm prod:import-instagram <dir> [--dry-run]  # Instagram export as drafts (see below)
 ```
+
+## Instagram import (phase 4)
+
+1. Request the export from the account: Instagram → Accounts Center → Your information and permissions → Download your information → Some of your information → **Posts** → Download to device, **Format: JSON**, **Media quality: High**, **Date range: All time**. It can take hours.
+2. Unzip it into `instagram-export/` at the repo root (gitignored; never commit it).
+3. Try it locally first: `pnpm import:instagram instagram-export --dry-run`, then without `--dry-run` (dev buckets, local database).
+4. Production: `.env.prod` also needs the `R2_*` variables with the production buckets. Then `pnpm prod:import-instagram instagram-export --dry-run`, and again without `--dry-run` (asks for confirmation). Use `--provenance "…"` to fill the provenance of every draft, and `--limit N` to go in batches.
+5. Review and publish each draft at `/admin/subir`.
 
 ## Releasing a change
 

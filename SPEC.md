@@ -164,8 +164,10 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 ## 7. Instagram import
 
 One-off, from Jorge's account export (Instagram → "Download your information", JSON format):
-- A local script that creates one **draft** photo per post, with the caption as `story` and the original link.
-- Optional: extract names and years from the caption to pre-fill fields (always reviewed by an admin).
+- A local script (`pnpm import:instagram` / `pnpm prod:import-instagram`) that creates one **draft** photo per **image**: a carousel post gives one draft per image, all with the same caption. Videos are skipped.
+- The caption (without hashtag-only lines) becomes the `story`; a season or year found in it pre-fills `season_label` and the years. Everything is reviewed by an admin before publishing.
+- The export has no link to each post, so `instagram_url` stays empty unless an admin adds it.
+- Idempotent: running it again skips images already imported.
 - The export **never** goes into the repo (`instagram-export/` is in `.gitignore`).
 
 ---
