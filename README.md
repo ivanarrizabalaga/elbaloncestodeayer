@@ -22,7 +22,15 @@ Next.js · TypeScript · Tailwind · Supabase (Postgres, Auth, RLS) · Cloudflar
 
 ## Local development
 
-_Filled in during phase 1._
+Requirements: Node 22 (see `.nvmrc`) and pnpm (`corepack enable pnpm`).
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+pnpm check        # lint + typecheck + format check + build
+```
+
+Supabase (local, via Docker) and environment variables are added in the next phase-1 PRs.
 
 ## Licence
 

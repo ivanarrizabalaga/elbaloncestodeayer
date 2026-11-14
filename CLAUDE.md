@@ -44,5 +44,6 @@ The mockups are in `design/*.dc.html`. They are the visual and behavioural refer
 
 - One phase of `SPEC.md` §9 per branch and PR (large phases may be split into several small PRs). Small, reviewable PRs.
 - If a decision changes something in `SPEC.md`, update it in the same PR.
-- Before calling something done: `lint`, `typecheck` and `build` with no errors. (Exact commands are added here in phase 1.)
+- Before calling something done, `pnpm check` must pass (it runs `pnpm lint`, `pnpm typecheck`, `pnpm format:check` and `pnpm build`). Use `pnpm format` to fix formatting. Markdown files are not formatted by Prettier.
+- This is Next.js 16: APIs differ from older versions (e.g. middleware is now `proxy`, Cache Components are on). Check `AGENTS.md` and the docs bundled in `node_modules/next/dist/docs/` before writing Next.js code.
 - If something in the spec is unclear, ask before inventing.
