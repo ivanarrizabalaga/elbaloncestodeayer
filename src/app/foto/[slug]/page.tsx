@@ -6,8 +6,10 @@ import { PhotoGrid } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { decadeLabel, photoLabel, photoSrc, photoTitle } from "@/lib/photos";
 import { initials, siteOrigin } from "@/lib/site";
+import { loadPersonOptions } from "@/lib/people";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { PhotoView, type PhotoTag } from "./photo-view";
+import { addMemory, deleteMemory, updateMemory } from "./actions";
+import { PhotoView, type PhotoTag, type Viewer } from "./photo-view";
 
 // RLS decides what is visible: published photos for everyone, drafts only for admins.
 const getPhoto = cache(async (slug: string) => {
@@ -66,6 +68,23 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           .limit(4)
       : Promise.resolve({ data: [] }),
   ]);
+
+  // Signed-in viewers get the person search and their own person (for «Quitar mi etiqueta»).
+  const [people, ownPerson] = user
+    ? await Promise.all([
+        loadPersonOptions(supabase),
+        supabase
+          .from("people")
+          .select("id")
+          .eq("claimed_by", user.id)
+          .maybeSingle()
+          .then((r) => r.data),
+      ])
+    : [[], null];
+  const viewer: Viewer = user
+    ? { isAdmin: user.isAdmin, personId: ownPerson?.id ?? null }
+    : null;
+  const canWrite = Boolean(user) && photo.status === "published";
 
   const tagRows = tagsResult.data ?? [];
   const memories = memoriesResult.data ?? [];
@@ -154,12 +173,14 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
       )}
 
       <PhotoView
+        photoId={photo.id}
         src={photoSrc(photo.storage_key)}
         width={photo.width}
         height={photo.height}
         alt={`Foto: ${photoLabel(photo)}`}
         tags={tags}
-        canInvite={Boolean(user)}
+        viewer={canWrite ? viewer : null}
+        people={people}
         heading={
           <div className="flex flex-col gap-1.5">
             {photo.season_label && (
@@ -198,7 +219,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           <WhatsAppShare text={shareText} url={shareUrl} className="mt-1.5" />
         }
         story={
-          photo.story || memories.length > 0 ? (
+          photo.story || memories.length > 0 || canWrite ? (
             <section aria-labelledby="historia" className="flex flex-col gap-4">
               <h2
                 id="historia"
@@ -239,11 +260,40 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
                           <p className="whitespace-pre-line text-[#dadada]">
                             {memory.body}
                           </p>
+                          {user && memory.author_id === user.id && (
+                            <OwnMemoryActions
+                              id={memory.id}
+                              slug={photo.slug}
+                              body={memory.body}
+                            />
+                          )}
                         </div>
                       </li>
                     );
                   })}
                 </ul>
+              )}
+              {canWrite && (
+                <form action={addMemory} className="mt-2 flex flex-col gap-2">
+                  <input type="hidden" name="slug" value={photo.slug} />
+                  <label className="flex flex-col gap-2 text-sm text-muted">
+                    Añade un recuerdo de esta foto
+                    <textarea
+                      name="body"
+                      rows={3}
+                      required
+                      maxLength={4000}
+                      placeholder="¿Te acuerdas de aquel partido?"
+                      className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3.5 py-3 text-[15px] text-fg"
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="inline-flex h-11 items-center self-start rounded-full border border-line-strong px-5 font-medium"
+                  >
+                    Publicar recuerdo
+                  </button>
+                </form>
               )}
             </section>
           ) : null
@@ -262,5 +312,52 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
         </section>
       )}
     </main>
+  );
+}
+
+// Edit (a <details> with the form, no client JavaScript) and delete for the author.
+function OwnMemoryActions({
+  id,
+  slug,
+  body,
+}: {
+  id: string;
+  slug: string;
+  body: string;
+}) {
+  return (
+    <details className="mt-1 text-sm">
+      <summary className="inline-flex min-h-11 cursor-pointer items-center text-muted">
+        Editar o borrar
+      </summary>
+      <form action={updateMemory} className="flex flex-col gap-2">
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="slug" value={slug} />
+        <textarea
+          name="body"
+          rows={3}
+          required
+          maxLength={4000}
+          defaultValue={body}
+          aria-label="Tu recuerdo"
+          className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3 py-2 text-[15px] text-fg"
+        />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center rounded-full border border-line-strong px-4"
+          >
+            Guardar
+          </button>
+          <button
+            type="submit"
+            formAction={deleteMemory}
+            className="inline-flex h-10 items-center rounded-full px-4 text-accent"
+          >
+            Borrar
+          </button>
+        </div>
+      </form>
+    </details>
   );
 }

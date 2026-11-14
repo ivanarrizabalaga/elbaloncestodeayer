@@ -220,6 +220,6 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 
 Decisions deliberately postponed. Revisit them in the phase noted.
 
-- **Users creating people while tagging** (phase 5). Today only admins create people; users tag existing people or leave a «?» face and suggest a name, which goes to review. Revisit if the review queue becomes a bottleneck; the risk is duplicate people ("Pepe García" vs "Pepe Garcia").
+- **Users creating people while tagging** (decided in phase 5.2, revisit if needed). Only admins create people; users tag existing people (published at once) or, for someone not in the archive, leave a «?» face with a name suggestion that goes to review. Revisit if the review queue becomes a bottleneck; the risk is duplicate people ("Pepe García" vs "Pepe Garcia").
 - **Account deletion / right to be forgotten** (phase 6). Today contributions survive account deletion without an author (`on delete set null`). Proposal to evaluate: delete the user's memories, release their claimed person, keep tags (they describe the photo, not the user). Document the outcome on the privacy page.
 - **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.

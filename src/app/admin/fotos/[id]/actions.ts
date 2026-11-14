@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { parseSeason } from "@/lib/photos";
+import { createPerson, nextLabelNumber } from "@/lib/people";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 
@@ -27,45 +28,16 @@ export async function addTag(input: {
   if (input.person && "id" in input.person) {
     personId = input.person.id;
   } else if (input.person) {
-    const fullName = input.person.newName.trim().replace(/\s+/g, " ");
-    if (!fullName) return { ok: false, error: "Escribe un nombre." };
-    const base = slugify(fullName);
-    const { data: similar } = await supabase
-      .from("people")
-      .select("slug")
-      .like("slug", `${base}%`);
-    const { data: created, error } = await supabase
-      .from("people")
-      .insert({
-        full_name: fullName,
-        slug: uniqueSlug(
-          base,
-          (similar ?? []).map((p) => p.slug),
-        ),
-        created_by: admin.id,
-      })
-      .select("id")
-      .single();
-    if (error) return { ok: false, error: "No se pudo crear la persona." };
-    personId = created.id;
+    personId = await createPerson(supabase, input.person.newName, admin.id);
+    if (!personId) return { ok: false, error: "No se pudo crear la persona." };
   }
-
-  // Next number among the active tags of this photo.
-  const { data: last } = await supabase
-    .from("tags")
-    .select("label_number")
-    .eq("photo_id", input.photoId)
-    .is("removed_at", null)
-    .order("label_number", { ascending: false })
-    .limit(1)
-    .maybeSingle();
 
   const { error } = await supabase.from("tags").insert({
     photo_id: input.photoId,
     person_id: personId,
     x: input.x,
     y: input.y,
-    label_number: (last?.label_number ?? 0) + 1,
+    label_number: await nextLabelNumber(supabase, input.photoId),
     created_by: admin.id,
   });
   if (error) return { ok: false, error: "No se pudo guardar la etiqueta." };

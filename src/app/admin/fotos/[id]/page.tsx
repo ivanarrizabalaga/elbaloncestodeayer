@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { loadPersonOptions } from "@/lib/people";
 import { photoSrc } from "@/lib/photos";
 import { createClient } from "@/lib/supabase/server";
 import { savePhoto } from "./actions";
-import { TagEditor, type PersonOption } from "./tag-editor";
+import { TagEditor } from "./tag-editor";
 
 export const metadata: Metadata = { title: "Editar foto" };
 
@@ -37,42 +38,17 @@ export default async function EditPhotoPage({
     notFound();
   }
 
-  const [{ data: tags }, { data: people }, { data: values }] =
-    await Promise.all([
-      supabase
-        .from("tags")
-        .select("id, x, y, label_number, person:people(full_name)")
-        .eq("photo_id", id)
-        .is("removed_at", null)
-        .order("label_number"),
-      supabase
-        .from("people")
-        .select("id, full_name, tags(photo:photos(team, year_from))")
-        .is("merged_into", null)
-        .is("tags.removed_at", null)
-        .order("full_name"),
-      // Existing values, offered as suggestions so the same team is not spelt five ways.
-      supabase.from("photos").select("team, venue, competition, provenance"),
-    ]);
-
-  const personOptions: PersonOption[] = (people ?? []).map((person) => {
-    const photos = person.tags.flatMap((t) => (t.photo ? [t.photo] : []));
-    const years = photos.flatMap((p) => (p.year_from ? [p.year_from] : []));
-    const teams = [...new Set(photos.flatMap((p) => (p.team ? [p.team] : [])))];
-    return {
-      id: person.id,
-      name: person.full_name,
-      detail: [
-        `${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`,
-        teams.slice(0, 2).join(", "),
-        years.length
-          ? `${Math.min(...years)}–${String(Math.max(...years)).slice(-2)}`
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
-    };
-  });
+  const [{ data: tags }, personOptions, { data: values }] = await Promise.all([
+    supabase
+      .from("tags")
+      .select("id, x, y, label_number, person:people(full_name)")
+      .eq("photo_id", id)
+      .is("removed_at", null)
+      .order("label_number"),
+    loadPersonOptions(supabase),
+    // Existing values, offered as suggestions so the same team is not spelt five ways.
+    supabase.from("photos").select("team, venue, competition, provenance"),
+  ]);
 
   const suggestions = (key: "team" | "venue" | "competition" | "provenance") =>
     [...new Set((values ?? []).flatMap((v) => (v[key] ? [v[key]] : [])))].sort(
