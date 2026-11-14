@@ -23,7 +23,9 @@
     "prod:db-push": "sh scripts/prod.sh supabase db push --remote",
     "prod:config-diff": "sh scripts/prod.sh supabase config diff",
     "prod:config-push": "sh scripts/prod.sh supabase config push",
-    "prod:admin": "node --env-file=.env.prod scripts/admin.mts"
+    "prod:admin": "node --env-file=.env.prod scripts/admin.mts",
+    "import:instagram": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/import-instagram.mts",
+    "prod:import-instagram": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.prod scripts/import-instagram.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
