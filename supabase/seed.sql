@@ -208,3 +208,12 @@ where m.hidden_at is null;
 insert into public.activity (actor_id, action, target_type, target_id, created_at) values
   ('a0000000-0000-0000-0000-000000000002', 'person_claimed', 'person',
    'b0000000-0000-0000-0000-000000000001', now() - interval '6 days');
+
+-- A photo proposed by Carlos, waiting in the queue (only Carlos and admins see it).
+insert into public.photos (id, slug, status, storage_key, width, height, proposed_by, created_at) values
+  ('c0000000-0000-0000-0000-000000000010', 'propuesta-c0000000', 'proposed', 'seed/team-1.svg',
+   1200, 800, 'a0000000-0000-0000-0000-000000000003', now() - interval '4 hours');
+insert into public.review_items (kind, photo_id, payload, created_by, created_at) values
+  ('photo_proposal', 'c0000000-0000-0000-0000-000000000010',
+   '{"comment": "Creo que es del torneo de Navidad del 85. Salgo yo el tercero."}',
+   'a0000000-0000-0000-0000-000000000003', now() - interval '4 hours');

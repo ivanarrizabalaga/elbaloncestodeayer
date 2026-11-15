@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { parseSeason } from "@/lib/photos";
 import { createPerson, nextLabelNumber } from "@/lib/people";
 import { slugify, uniqueSlug } from "@/lib/slug";
+import { withdrawnByContributor } from "@/lib/review";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 
 // Every action runs as the signed-in admin, so RLS checks it again.
@@ -100,9 +101,19 @@ export async function savePhoto(formData: FormData) {
     featured: formData.get("featured") === "on",
   };
 
-  const publishing = intent === "publish" && photo.status !== "published";
+  // A photo its contributor took down stays down (SPEC §5); one an admin withdrew can
+  // come back, with the address it already had.
+  const republishing = intent === "publish" && photo.status === "withdrawn";
+  if (republishing && (await withdrawnByContributor(supabase, id))) {
+    redirect(`/admin/fotos/${id}?error=retirada`);
+  }
+  const publishing =
+    intent === "publish" &&
+    (photo.status === "draft" || photo.status === "proposed");
   let publishFields = {};
-  if (publishing) {
+  if (republishing) {
+    publishFields = { status: "published" as const };
+  } else if (publishing) {
     const base = slugify(
       [team, seasonLabel].filter(Boolean).join(" ") || "foto",
     );
@@ -127,7 +138,53 @@ export async function savePhoto(formData: FormData) {
     .eq("id", id);
   if (error) redirect(`/admin/fotos/${id}?error=guardar`);
 
-  redirect(`/admin/fotos/${id}?ok=${publishing ? "publicada" : "guardada"}`);
+  // A published proposal leaves the review queue.
+  if (publishing && photo.status === "proposed") {
+    await supabase
+      .from("review_items")
+      .update({
+        status: "resolved",
+        resolved_by: admin.id,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("photo_id", id)
+      .eq("kind", "photo_proposal")
+      .eq("status", "open");
+  }
+
+  redirect(
+    `/admin/fotos/${id}?ok=${publishing || republishing ? "publicada" : "guardada"}`,
+  );
+}
+
+// «Retirar foto»: it stops being visible; tags, memories and the original are kept, so it
+// can be published again. Open withdrawal requests for it are done.
+export async function withdrawPhoto(formData: FormData) {
+  const admin = await requireAdmin();
+  const supabase = await createClient();
+  const id = String(formData.get("id") ?? "");
+
+  const { data: photo } = await supabase
+    .from("photos")
+    .update({ status: "withdrawn", featured: false })
+    .eq("id", id)
+    .eq("status", "published")
+    .select("id")
+    .maybeSingle();
+  if (!photo) redirect(`/admin/fotos/${id}?error=guardar`);
+
+  await supabase
+    .from("review_items")
+    .update({
+      status: "resolved",
+      resolved_by: admin.id,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("photo_id", id)
+    .eq("kind", "removal_request")
+    .eq("status", "open");
+
+  redirect(`/admin/fotos/${id}?ok=retirada`);
 }
 
 function inUnitRange(n: number): boolean {

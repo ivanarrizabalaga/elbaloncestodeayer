@@ -17,7 +17,7 @@ const getPhoto = cache(async (slug: string) => {
   const { data } = await supabase
     .from("photos")
     .select(
-      "id, slug, status, season_label, year_from, team, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height",
+      "id, slug, status, season_label, year_from, team, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height, proposed_by",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -216,7 +216,19 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           ) : null
         }
         actions={
-          <WhatsAppShare text={shareText} url={shareUrl} className="mt-1.5" />
+          <div className="mt-1.5 flex flex-col items-start gap-1">
+            <WhatsAppShare text={shareText} url={shareUrl} />
+            {photo.status === "published" && (
+              <Link
+                href={`/foto/${photo.slug}/retirar`}
+                className="inline-flex min-h-11 items-center text-[13px] text-muted underline-offset-4 hover:text-fg hover:underline"
+              >
+                {user && photo.proposed_by === user.id
+                  ? "Retirar esta foto (es tuya)"
+                  : "Pedir que se retire esta foto"}
+              </Link>
+            )}
+          </div>
         }
         story={
           photo.story || memories.length > 0 || canWrite ? (

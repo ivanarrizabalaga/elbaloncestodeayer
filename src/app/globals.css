@@ -13,6 +13,8 @@
   --color-muted: #a6a6a6;
   --color-accent: #ff7a1a;
   --color-on-accent: #0e0e0e;
+  /* Destructive actions only (withdraw). Text on bg passes AA; bg-danger takes text-bg. */
+  --color-danger: #f26464;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display:

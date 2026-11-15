@@ -12,6 +12,7 @@ import {
   acceptSuggestion,
   clearDisputedTag,
   dismissItems,
+  rejectProposal,
   resolveItems,
   takeItems,
   undoActivity,
@@ -339,7 +340,7 @@ function ReviewCard({
               type="submit"
               formAction={action}
               className={`inline-flex h-11 items-center rounded-full px-4 text-[13px] ${
-                i === 0
+                i === 0 && !card.link
                   ? "bg-accent font-semibold text-on-accent"
                   : "border border-line-strong font-medium"
               }`}
@@ -439,34 +440,38 @@ function describe(
     }
     case "removal_request": {
       const reason = payloadText(item.payload, "reason");
+      const contact = payloadText(item.payload, "contact");
       return {
         type: "Petición de retirada",
         title: `${who} ${plural ? "piden" : "pide"} retirar una foto`,
-        detail: `${where}. Motivo: ${reason?.replace(/[.\s]+$/, "") ?? "no lo dice"}.`,
+        detail: `${where}. Motivo: ${reason?.replace(/[.\s]+$/, "") ?? "no lo dice"}. ${
+          contact ? `Contacto: ${contact}.` : "No ha dejado contacto."
+        }`,
         actions: [
           ["Retirar foto", withdrawPhoto],
           ["Descartar", dismissItems],
         ],
       };
     }
-    case "photo_proposal":
+    case "photo_proposal": {
+      const comment = payloadText(item.payload, "comment");
       return {
         type: "Foto propuesta",
         title: `${who} ${plural ? "han" : "ha"} propuesto una foto`,
-        detail: payloadText(item.payload, "comment") ?? "Sin comentario.",
-        actions: [
-          ["Hecho", resolveItems],
-          ["Descartar", dismissItems],
-        ],
+        detail: comment
+          ? `Comentario: «${comment}». Ábrela para completar los datos, etiquetar y publicar.`
+          : "Sin comentario. Ábrela para completar los datos, etiquetar y publicar.",
+        actions: [["Rechazar", rejectProposal]],
         link: item.photo && (
           <Link
             href={`/admin/fotos/${item.photo.id}`}
-            className="inline-flex h-11 items-center px-2 text-[13px] font-medium text-accent"
+            className="order-first inline-flex h-11 items-center rounded-full bg-accent px-4 text-[13px] font-semibold text-on-accent"
           >
-            Revisar y publicar →
+            Revisar y publicar
           </Link>
         ),
       };
+    }
     default:
       return {
         type: "Posible duplicado",
@@ -600,7 +605,10 @@ function ActivityRow({
   targets: Targets;
 }) {
   const id = entry.target_id ?? "";
-  let text: ReactNode = entry.action;
+  let text: ReactNode =
+    entry.action === "own_photo_withdrawn"
+      ? "retiró una foto que había aportado"
+      : entry.action;
   let photo: PhotoRef | null = null;
   // [label, already undone]
   let undo: [string, boolean] | null = null;

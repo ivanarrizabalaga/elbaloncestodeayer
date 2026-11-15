@@ -39,3 +39,16 @@ export async function countOpenReviewItems(supabase: Client): Promise<number> {
     .eq("status", "open");
   return new Set((data ?? []).map(reviewGroupKey)).size;
 }
+
+// A photo its contributor took down (withdraw_own_photo) must not be republished.
+export async function withdrawnByContributor(
+  supabase: Client,
+  photoId: string,
+): Promise<boolean> {
+  const { count } = await supabase
+    .from("activity")
+    .select("id", { count: "exact", head: true })
+    .eq("action", "own_photo_withdrawn")
+    .eq("target_id", photoId);
+  return (count ?? 0) > 0;
+}
