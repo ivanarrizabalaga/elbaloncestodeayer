@@ -136,6 +136,7 @@ pnpm prod:config-push          # apply them
 pnpm prod:admin list           # list admins
 pnpm prod:admin grant <email>  # make someone admin (creates the account if needed)
 pnpm prod:import-instagram <dir> [--dry-run]  # Instagram export as drafts (see below)
+pnpm prod:import-folder <dir> --map <map.json> [--dry-run]  # folder of photos as drafts (see below)
 ```
 
 ## Instagram import (phase 4)
@@ -145,6 +146,29 @@ pnpm prod:import-instagram <dir> [--dry-run]  # Instagram export as drafts (see 
 3. Try it locally first: `pnpm import:instagram instagram-export --dry-run`, then without `--dry-run` (dev buckets, local database).
 4. Production: `.env.prod` also needs the `R2_*` variables with the production buckets. Then `pnpm prod:import-instagram instagram-export --dry-run`, and again without `--dry-run` (asks for confirmation). Use `--provenance "…"` to fill the provenance of every draft, and `--limit N` to go in batches.
 5. Review and publish each draft at `/admin/subir`.
+
+## Folder import
+
+For a folder of photos (e.g. a Google Drive download). Keep the folder and its map **outside the repo**.
+
+1. Write the map (JSON). Every key is optional; values merge as map < folder < file:
+
+   ```json
+   {
+     "provenance": "…",
+     "skip": ["VIDEOS", "VARIOS/logo.png"],
+     "folders": { "CAU": { "team": "CAU Oviedo" } },
+     "files": {
+       "CAU/Foto_1.jpg": { "season": "Años 70", "venue": "…" },
+       "MIERES/IMG_1.HEIC": { "rotate": 270 }
+     }
+   }
+   ```
+
+   Fields: `team`, `venue`, `competition`, `season` («1984–85», «1979» or «Años 70»), `provenance`, `story`, `rotate` (90, 180 or 270, clockwise). Folder names are matched without trailing spaces.
+2. Locally: `pnpm import:folder <dir> --map <map.json> --dry-run` shows counts per folder, identical copies and map entries that match nothing. Then without `--dry-run` (dev buckets, local database). Needs macOS (`sips`) for HEIC files.
+3. Production: run `pnpm prod:db-push` first if the `source_file`/`image_hash` migration is not applied yet. Then `pnpm prod:import-folder … --dry-run`, a first batch with `--limit 10`, and the rest. It asks for confirmation and lists drafts that look like a photo already in the archive.
+4. Review and publish each draft at `/admin/subir`. Photos from one folder can be found with `source_file like 'PAPA/%'`.
 
 ## Releasing a change
 

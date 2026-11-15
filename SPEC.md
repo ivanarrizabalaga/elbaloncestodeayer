@@ -106,6 +106,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - `team`, `venue`, `competition` (free text with autocomplete from existing values; normalise later only if needed)
 - `provenance`, `photographer`, `story`, `instagram_url`, `featured` (the «foto de la semana» on the home page; only one at a time: featuring a photo unfeatures the previous one. With none featured, the home shows the latest published photo)
 - `storage_key`, `width`, `height`
+- `source_file`, `image_hash` (imported photos only: the file's path in the imported folder or export, and a perceptual hash to spot duplicates across imports, screenshots and resized copies)
 - `proposed_by`, `published_by`, `published_at`, `created_at`
 
 **tags** — one face in one photo
@@ -184,6 +185,12 @@ One-off, from Jorge's account export (Instagram → "Download your information",
 - The export has no link to each post, so `instagram_url` stays empty unless an admin adds it.
 - Idempotent: running it again skips images already imported.
 - The export **never** goes into the repo (`instagram-export/` is in `.gitignore`).
+
+**Folder import.** Same idea for a folder of photos (e.g. a Google Drive download), with `pnpm import:folder` / `pnpm prod:import-folder`:
+- One draft per image (HEIC converted to JPEG); videos are skipped.
+- A JSON map kept **outside the repo** (it holds real names) pre-fills `team`, `venue`, `competition`, `season_label`, `provenance` and `story` per folder or per file, can skip files and can turn images scanned sideways. A decade-only season is written «Años 70».
+- Each draft keeps `source_file` (so photos that came together, e.g. one folder, can be found later) and `image_hash`; the script lists drafts that look like a photo already there.
+- Idempotent: the id comes from the file's bytes, so identical copies are imported once.
 
 ---
 

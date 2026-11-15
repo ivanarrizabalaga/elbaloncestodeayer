@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FaceCrop } from "@/components/face-crop";
-import { photoLabel, photoSrc } from "@/lib/photos";
+import { photoLabel, photoSrc, seasonText } from "@/lib/photos";
 import {
   openGraph,
   previewImage,
@@ -405,7 +405,7 @@ function Featured({
           id="destacada"
           className="font-display text-[clamp(32px,3.6vw,48px)] leading-[1.02] font-bold"
         >
-          {[photo.team, photo.season_label && `temporada ${photo.season_label}`]
+          {[photo.team, photo.season_label && seasonText(photo.season_label)]
             .filter(Boolean)
             .join(" · ") || photoLabel(photo)}
         </h1>
