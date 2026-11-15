@@ -137,6 +137,7 @@ pnpm prod:admin list           # list admins
 pnpm prod:admin grant <email>  # make someone admin (creates the account if needed)
 pnpm prod:import-instagram <dir> [--dry-run]  # Instagram export as drafts (see below)
 pnpm prod:import-folder <dir> --map <map.json> [--dry-run]  # folder of photos as drafts (see below)
+pnpm prod:backfill-hashes [--dry-run]  # image_hash for photos that have none (see below)
 ```
 
 ## Instagram import (phase 4)
@@ -169,6 +170,15 @@ For a folder of photos (e.g. a Google Drive download). Keep the folder and its m
 2. Locally: `pnpm import:folder <dir> --map <map.json> --dry-run` shows counts per folder, identical copies and map entries that match nothing. Then without `--dry-run` (dev buckets, local database). Needs macOS (`sips`) for HEIC files.
 3. Production: run `pnpm prod:db-push` first if the `source_file`/`image_hash` migration is not applied yet. Then `pnpm prod:import-folder … --dry-run`, a first batch with `--limit 10`, and the rest. It asks for confirmation and lists drafts that look like a photo already in the archive.
 4. Review and publish each draft at `/admin/subir`. Photos from one folder can be found with `source_file like 'PAPA/%'`.
+
+## Image hashes for older photos
+
+`image_hash` (used to flag photos that look the same) is filled by the importers. Photos from before it, such as the Instagram import, get theirs with:
+
+1. `pnpm backfill:hashes --dry-run` locally, then without `--dry-run`.
+2. Production: `pnpm prod:backfill-hashes --dry-run`, then without it (asks for confirmation). It reads each original from R2, so `.env.prod` needs the `R2_*` variables.
+
+It only touches photos without a hash, so it can be run again at any time (e.g. to retry failures). At the end it lists the pairs that look like the same picture.
 
 ## Releasing a change
 
