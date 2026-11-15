@@ -123,13 +123,24 @@ export default async function UploadPage({
           >
             Borradores{total ? ` (${total})` : ""}
           </h2>
-          <nav aria-label="Vista" className="flex gap-2">
-            <Chip href={href({ vista: null })} active={!table}>
-              Cuadrícula
-            </Chip>
-            <Chip href={href({ vista: "tabla" })} active={table}>
-              Tabla
-            </Chip>
+          <nav
+            aria-label="Vista"
+            className="flex rounded-full border border-line-strong p-0.5"
+          >
+            <ViewLink
+              href={href({ vista: null })}
+              active={!table}
+              label="Cuadrícula"
+            >
+              <GridIcon />
+            </ViewLink>
+            <ViewLink
+              href={href({ vista: "tabla" })}
+              active={table}
+              label="Tabla"
+            >
+              <TableIcon />
+            </ViewLink>
           </nav>
         </div>
 
@@ -350,6 +361,57 @@ function PublishFolderButton({
       tone="neutral"
       compact
     />
+  );
+}
+
+// One side of the grid/table switch: an icon, named for screen readers and in a tooltip.
+function ViewLink({
+  href,
+  active,
+  label,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      title={label}
+      className={`inline-flex size-11 items-center justify-center rounded-full ${
+        active ? "bg-fg text-bg" : "text-muted hover:text-fg"
+      }`}
+    >
+      {children}
+      <span className="sr-only">{label}</span>
+    </Link>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-5 fill-current">
+      <rect x="2" y="2" width="7" height="7" rx="1.5" />
+      <rect x="11" y="2" width="7" height="7" rx="1.5" />
+      <rect x="2" y="11" width="7" height="7" rx="1.5" />
+      <rect x="11" y="11" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+function TableIcon() {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="size-5 fill-current">
+      <rect x="2" y="3" width="4" height="3" rx="1" />
+      <rect x="8" y="3.5" width="10" height="2" rx="1" />
+      <rect x="2" y="8.5" width="4" height="3" rx="1" />
+      <rect x="8" y="9" width="10" height="2" rx="1" />
+      <rect x="2" y="14" width="4" height="3" rx="1" />
+      <rect x="8" y="14.5" width="10" height="2" rx="1" />
+    </svg>
   );
 }
 
