@@ -145,7 +145,11 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - Photos uploaded by admins on someone else's behalf (e.g. the Instagram import) have no `proposed_by`; they follow the normal withdrawal request.
 - Implemented as a `SECURITY DEFINER` function (`withdraw_own_photo`) in phase 5.
 
-**Suggested name** — `review_item`; on acceptance an existing person is assigned or a new one is created.
+**Suggested name** — `review_item`; on acceptance an existing person is assigned (matched by name, ignoring accents and case) or a new one is created. Identical suggestions for the same face are shown as one item, and accepting one dismisses the other open suggestions for that face.
+
+**«No soy yo» in the queue** — *Mantener* closes it. *Quitar el nombre* turns the face back into «?», expires the invitation and, if a name was proposed, files it as a name suggestion credited to whoever proposed it.
+
+**Recent activity** — lists what was published without review. Undo: a user's tag is removed (soft delete), a memory is hidden, a claim («Este soy yo» or an accepted invitation) is released.
 
 **Duplicates** — the admin merges: tags move to the target person and the other one gets `merged_into`.
 
