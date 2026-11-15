@@ -28,7 +28,9 @@
     "import:instagram": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/import-instagram.mts",
     "prod:import-instagram": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.prod scripts/import-instagram.mts",
     "import:folder": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/import-folder.mts",
-    "prod:import-folder": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.prod scripts/import-folder.mts"
+    "prod:import-folder": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.prod scripts/import-folder.mts",
+    "backfill:hashes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/backfill-image-hash.mts",
+    "prod:backfill-hashes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.prod scripts/backfill-image-hash.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

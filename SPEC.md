@@ -190,6 +190,7 @@ One-off, from Jorge's account export (Instagram → "Download your information",
 - One draft per image (HEIC converted to JPEG); videos are skipped.
 - A JSON map kept **outside the repo** (it holds real names) pre-fills `team`, `venue`, `competition`, `season_label`, `provenance` and `story` per folder or per file, can skip files and can turn images scanned sideways. A decade-only season is written «Años 70».
 - Each draft keeps `source_file` (so photos that came together, e.g. one folder, can be found later) and `image_hash`; the script lists drafts that look like a photo already there.
+- Photos from before `image_hash` (the Instagram import, earlier uploads) get theirs with a one-off local script (`pnpm backfill:hashes` / `pnpm prod:backfill-hashes`), computed from the original in R2.
 - Idempotent: the id comes from the file's bytes, so identical copies are imported once.
 
 ---
