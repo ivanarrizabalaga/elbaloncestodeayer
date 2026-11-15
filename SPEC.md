@@ -74,7 +74,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Screen | Route | Mockup | What it does |
 |---|---|---|---|
 | Pending review | `/admin/pendiente` | `AdminPendiente.dc.html` | Queue: proposed photos, suggested names, withdrawal requests (priority), «No soy yo» disputes, possible duplicates. «Me lo quedo» to split the work. Recent activity with undo |
-| Upload and tag | `/admin/subir` | `AdminSubir.dc.html` | Multi-upload into drafts, click a face → search existing person / create new / leave as «?». Photo details. Publish |
+| Upload and tag | `/admin/subir` | `AdminSubir.dc.html` | Multi-upload into drafts, click a face → search existing person / create new / leave as «?». Photo details. Publish. Drafts as a grid or a table (50 per page, filter by imported folder, lookalikes flagged by `image_hash`) with bulk «Publicar» / «Descartar» |
 | Users and admins | `/admin/usuarios` | `AdminUsuarios.dc.html` | List of admins (with pending invitations) and users. Invite admin, make/remove admin, block |
 | People | `/admin/personas` | _(no mockup)_ | List, edit, merge duplicates |
 | Photos | `/admin/fotos` | _(no mockup)_ | List with status (draft, published, withdrawn), search, edit |
