@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConfirmButton } from "@/components/confirm-button";
+import { LookalikeList } from "@/components/lookalike-list";
 import { PhotoGrid } from "@/components/photo-grid";
 import { PhotoUploader } from "@/components/photo-uploader";
+import { loadLookalikes, type Lookalike } from "@/lib/lookalikes";
 import { photoLabel, photoSrc, seasonText } from "@/lib/photos";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -89,7 +91,12 @@ export default async function UploadPage({
     return `/admin/subir${search ? `?${search}` : ""}`;
   };
 
-  const lookalikes = table ? await loadLookalikes(supabase, drafts) : null;
+  const lookalikes = table
+    ? await loadLookalikes(
+        supabase,
+        drafts.map((d) => d.id),
+      )
+    : null;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pt-8 sm:px-6">
@@ -237,19 +244,6 @@ export default async function UploadPage({
   );
 }
 
-const STATUS: Record<string, string> = {
-  draft: "borrador",
-  published: "publicada",
-  proposed: "propuesta",
-  withdrawn: "retirada",
-};
-
-type Lookalike = {
-  id: string;
-  label: string;
-  storage_key: string | null;
-};
-
 function DraftsTable({
   drafts,
   lookalikes,
@@ -319,31 +313,7 @@ function DraftsTable({
                       {d.source_file}
                     </span>
                   )}
-                  {similar.length > 0 && (
-                    <div className="mt-1 flex flex-col items-start gap-1.5 text-xs">
-                      <span className="font-semibold text-accent">
-                        Parecida a:
-                      </span>
-                      {similar.map((s) => (
-                        <Link
-                          key={s.id}
-                          href={`/admin/fotos/${s.id}`}
-                          className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-md border border-line-strong py-1 pr-2.5 pl-1 break-all"
-                        >
-                          {s.storage_key && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={photoSrc(s.storage_key, "thumb")}
-                              alt=""
-                              loading="lazy"
-                              className="h-8 w-12 rounded object-cover"
-                            />
-                          )}
-                          {s.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  <LookalikeList items={similar} className="mt-1" />
                 </div>
               </td>
             </tr>
@@ -352,37 +322,6 @@ function DraftsTable({
       </tbody>
     </table>
   );
-}
-
-// Other photos that look like the drafts on this page (same picture, by image_hash).
-async function loadLookalikes(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  drafts: Draft[],
-): Promise<Map<string, Lookalike[]>> {
-  const result = new Map<string, Lookalike[]>();
-  if (drafts.length === 0) return result;
-  const { data: pairs } = await supabase.rpc("photo_lookalikes", {
-    photo_ids: drafts.map((d) => d.id),
-  });
-  if (!pairs?.length) return result;
-  const { data: others } = await supabase
-    .from("photos")
-    .select("id, status, team, source_file, storage_key")
-    .in("id", [...new Set(pairs.map((p) => p.other_id))]);
-  const byId = new Map((others ?? []).map((o) => [o.id, o]));
-  for (const pair of pairs) {
-    const other = byId.get(pair.other_id);
-    const status = STATUS[pair.other_status] ?? pair.other_status;
-    result.set(pair.photo_id, [
-      ...(result.get(pair.photo_id) ?? []),
-      {
-        id: pair.other_id,
-        label: `${other?.source_file ?? other?.team ?? "otra foto"} (${status})`,
-        storage_key: other?.storage_key ?? null,
-      },
-    ]);
-  }
-  return result;
 }
 
 // «Publicar las 46 de CAU»: every draft of the chosen folder, not only this page's.

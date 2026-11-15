@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { discardDrafts } from "@/app/admin/subir/actions";
 import { ConfirmButton } from "@/components/confirm-button";
+import { LookalikeList } from "@/components/lookalike-list";
+import { loadLookalikes } from "@/lib/lookalikes";
 import { loadPersonOptions } from "@/lib/people";
 import { photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, withdrawnByContributor } from "@/lib/review";
@@ -51,17 +54,19 @@ export default async function EditPhotoPage({
     notFound();
   }
 
-  const [{ data: tags }, personOptions, { data: values }] = await Promise.all([
-    supabase
-      .from("tags")
-      .select("id, x, y, label_number, person:people(full_name)")
-      .eq("photo_id", id)
-      .is("removed_at", null)
-      .order("label_number"),
-    loadPersonOptions(supabase),
-    // Existing values, offered as suggestions so the same team is not spelt five ways.
-    supabase.from("photos").select("team, venue, competition, provenance"),
-  ]);
+  const [{ data: tags }, personOptions, { data: values }, lookalikes] =
+    await Promise.all([
+      supabase
+        .from("tags")
+        .select("id, x, y, label_number, person:people(full_name)")
+        .eq("photo_id", id)
+        .is("removed_at", null)
+        .order("label_number"),
+      loadPersonOptions(supabase),
+      // Existing values, offered as suggestions so the same team is not spelt five ways.
+      supabase.from("photos").select("team, venue, competition, provenance"),
+      loadLookalikes(supabase, [id]),
+    ]);
 
   const suggestions = (key: "team" | "venue" | "competition" | "provenance") =>
     [...new Set((values ?? []).flatMap((v) => (v[key] ? [v[key]] : [])))].sort(
@@ -146,20 +151,24 @@ export default async function EditPhotoPage({
       )}
 
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-        <TagEditor
-          photoId={photo.id}
-          src={photoSrc(photo.storage_key)}
-          width={photo.width}
-          height={photo.height}
-          tags={(tags ?? []).map((tag) => ({
-            id: tag.id,
-            number: tag.label_number,
-            x: tag.x,
-            y: tag.y,
-            personName: tag.person?.full_name ?? null,
-          }))}
-          people={personOptions}
-        />
+        <div className="flex min-w-0 flex-col gap-4">
+          <TagEditor
+            photoId={photo.id}
+            src={photoSrc(photo.storage_key)}
+            width={photo.width}
+            height={photo.height}
+            tags={(tags ?? []).map((tag) => ({
+              id: tag.id,
+              number: tag.label_number,
+              x: tag.x,
+              y: tag.y,
+              personName: tag.person?.full_name ?? null,
+            }))}
+            people={personOptions}
+          />
+          {/* Same picture elsewhere (by image_hash): open it, compare and discard the worse one. */}
+          <LookalikeList items={lookalikes.get(photo.id) ?? []} />
+        </div>
 
         <form
           action={savePhoto}
@@ -274,6 +283,15 @@ export default async function EditPhotoPage({
                   ? "Volver a publicar"
                   : "Publicar"}
               </button>
+            )}
+            {photo.status === "draft" && (
+              <ConfirmButton
+                label="Descartar"
+                title="¿Descartar este borrador?"
+                body="Deja de aparecer en borradores y no se publica."
+                confirmLabel="Descartar"
+                action={discardDrafts}
+              />
             )}
           </div>
           {publishable && photo.status !== "withdrawn" && (

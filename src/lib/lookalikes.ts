@@ -1,0 +1,50 @@
+import "server-only";
+import type { createClient } from "@/lib/supabase/server";
+
+type Client = Awaited<ReturnType<typeof createClient>>;
+
+export type Lookalike = {
+  id: string;
+  // «CAU/Foto_1.jpg (borrador)»: where it came from, or its team, and its status.
+  label: string;
+  storage_key: string | null;
+};
+
+const STATUS: Record<string, string> = {
+  draft: "borrador",
+  published: "publicada",
+  proposed: "propuesta",
+  withdrawn: "retirada",
+};
+
+// Other photos that look like each of the given ones (same picture, by image_hash; see the
+// photo_lookalikes function). Runs as the signed-in admin, through RLS.
+export async function loadLookalikes(
+  supabase: Client,
+  photoIds: string[],
+): Promise<Map<string, Lookalike[]>> {
+  const result = new Map<string, Lookalike[]>();
+  if (photoIds.length === 0) return result;
+  const { data: pairs } = await supabase.rpc("photo_lookalikes", {
+    photo_ids: photoIds,
+  });
+  if (!pairs?.length) return result;
+  const { data: others } = await supabase
+    .from("photos")
+    .select("id, team, source_file, storage_key")
+    .in("id", [...new Set(pairs.map((p) => p.other_id))]);
+  const byId = new Map((others ?? []).map((o) => [o.id, o]));
+  for (const pair of pairs) {
+    const other = byId.get(pair.other_id);
+    const status = STATUS[pair.other_status] ?? pair.other_status;
+    result.set(pair.photo_id, [
+      ...(result.get(pair.photo_id) ?? []),
+      {
+        id: pair.other_id,
+        label: `${other?.source_file ?? other?.team ?? "otra foto"} (${status})`,
+        storage_key: other?.storage_key ?? null,
+      },
+    ]);
+  }
+  return result;
+}
