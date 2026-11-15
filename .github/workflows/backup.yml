@@ -39,7 +39,7 @@ jobs:
           # R2 does not need the newer default checksums of the AWS CLI.
           AWS_REQUEST_CHECKSUM_CALCULATION: when_required
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          R2_BACKUPS_BUCKET: ${{ secrets.R2_BACKUPS_BUCKET }}
+          R2_BACKUPS_BUCKET: ${{ vars.R2_BACKUPS_BUCKET }}
         run: |
           name="db-$(date -u +%Y-%m-%d).tar.gz"
           tar -czf "$name" -C dump .
