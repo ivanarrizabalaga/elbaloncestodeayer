@@ -165,3 +165,6 @@ supabase/.temp
 next-env.d.ts
 *.pem
 .DS_Store
+
+# Database backups contain real data (scripts/backup.sh)
+backups/

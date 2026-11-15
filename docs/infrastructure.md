@@ -14,6 +14,7 @@ No secrets in this file or anywhere in the repo. They live in the providers, in 
 | Database + Auth | Supabase (Free) | Project `elbaloncestodeayer`, ref `nardwkpviokncuyuinmq`, `eu-west-1` (Ireland) |
 | Email (magic links) | Resend (Free) | Domain `mail.elbaloncestodeayer.com`, `eu-west-1` |
 | Images | Cloudflare R2 | 4 buckets in the EU jurisdiction (production and dev × public and originals) |
+| Database backups | GitHub Actions → Cloudflare R2 | Weekly, bucket `elbaloncestodeayer-backups` (see «Backups») |
 
 ## DNS (Cloudflare)
 
@@ -80,6 +81,49 @@ Four buckets, all created with the **EU jurisdiction** (it cannot be changed lat
 - Uploads: the browser PUTs the original with a presigned URL (10 minutes), then a Server Action makes the derivatives with `sharp` and creates the draft.
 - CORS on both originals buckets: `PUT` with `content-type` from `https://elbaloncestodeayer.com` and `http://localhost:3000`.
 - One Account API token, "Object Read & Write" on the four buckets. Its keys are server-only (`R2_*`).
+
+## Backups
+
+Supabase Free has no downloadable backups, so a GitHub Action (`.github/workflows/backup.yml`) dumps the production database every Sunday at 03:00 UTC with `scripts/backup.sh` and uploads `db-YYYY-MM-DD.tar.gz` (`roles.sql`, `schema.sql`, `data.sql`) to a private R2 bucket. Sessions and one-time tokens are left out on purpose. Photos are not part of it: the originals live in R2.
+
+The repo is public, so the dump never goes into the repo, the logs or the run's artifacts. Locally, `pnpm db:backup` dumps the local database into `backups/` (gitignored).
+
+### Setup (once)
+
+1. **R2 bucket:** create `elbaloncestodeayer-backups` with the **EU jurisdiction**, private. In its settings, add an object lifecycle rule: delete objects after 90 days.
+2. **R2 token:** a new Account API token, «Object Read & Write», applied **only** to the backups bucket. Keep the Access Key ID and Secret Access Key.
+3. **Database URL:** in Supabase, *Connect* → *Session pooler* (IPv4: GitHub runners have no IPv6). Copy the URI and put the database password in it.
+4. **GitHub secrets:** in the repo, *Settings → Secrets and variables → Actions → New repository secret*:
+
+| Secret | Value |
+|---|---|
+| `SUPABASE_DB_URL` | The session pooler URI, with the password |
+| `R2_BACKUP_ACCESS_KEY_ID` | From step 2 |
+| `R2_BACKUP_SECRET_ACCESS_KEY` | From step 2 |
+| `R2_ENDPOINT` | `https://<account-id>.eu.r2.cloudflarestorage.com` (same as the app's) |
+| `R2_BACKUPS_BUCKET` | `elbaloncestodeayer-backups` |
+
+5. **First run:** *Actions → Backup → Run workflow*, then check that the file appears in the bucket.
+
+GitHub pauses scheduled workflows after 60 days without activity in the repo and sends an email; re-enable it from the Actions tab.
+
+### Restore
+
+Into a **new, empty** Supabase project (Supabase's own restore procedure):
+
+```sh
+mkdir restore && tar -xzf db-YYYY-MM-DD.tar.gz -C restore
+psql --single-transaction --variable ON_ERROR_STOP=1 \
+  --file restore/roles.sql \
+  --file restore/schema.sql \
+  --command 'SET session_replication_role = replica' \
+  --file restore/data.sql \
+  --dbname "<new project's session pooler URI>"
+```
+
+Then point the app at the new project: its URL and keys in Vercel and `.env.prod`, `project_id` in `supabase/config.toml` (`[remotes.production]`), and `pnpm prod:config-push` for the auth settings. Everyone keeps their account; they just sign in again.
+
+The data part was rehearsed locally: empty the tables, load `data.sql` with `session_replication_role = replica`, same counts as before.
 
 ## `.env.prod` and the `prod:*` scripts
 
