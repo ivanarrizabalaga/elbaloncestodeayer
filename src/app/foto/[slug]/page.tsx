@@ -4,7 +4,13 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PhotoGrid } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
-import { decadeLabel, photoLabel, photoSrc, photoTitle } from "@/lib/photos";
+import {
+  decadeLabel,
+  photoLabel,
+  photoSrc,
+  photoTitle,
+  seasonText,
+} from "@/lib/photos";
 import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
 import { loadPersonOptions } from "@/lib/people";
@@ -213,7 +219,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
           <div className="flex flex-col gap-1.5">
             {photo.season_label && (
               <span className="text-xs font-semibold tracking-[0.12em] text-accent uppercase">
-                Temporada {photo.season_label}
+                {seasonText(photo.season_label)}
               </span>
             )}
             <h1 className="font-display text-[44px] leading-none font-bold">
@@ -346,7 +352,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
             id="mas"
             className="font-display text-[30px] leading-none font-bold"
           >
-            Más de la temporada {photo.season_label}
+            Más de {seasonText(photo.season_label ?? "")}
           </h2>
           <PhotoGrid photos={morePhotos} />
         </section>

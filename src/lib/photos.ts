@@ -27,9 +27,16 @@ export function photoTitle(photo: Titled): string {
   return photo.team ?? "Foto sin título";
 }
 
+// «1984–85» -> «temporada 1984–85»; a decade-only label («Años 70») -> «años 70».
+export function seasonText(label: string): string {
+  return /^a[ñn]os\b/i.test(label) ? label.toLowerCase() : `temporada ${label}`;
+}
+
 // «Equipo, temporada 1984–85» — used for alt text and link labels.
 export function photoLabel(photo: Titled): string {
-  const season = photo.season_label ? `, temporada ${photo.season_label}` : "";
+  const season = photo.season_label
+    ? `, ${seasonText(photo.season_label)}`
+    : "";
   return `${photoTitle(photo)}${season}`;
 }
 
@@ -39,7 +46,8 @@ export function decadeLabel(year: number | null): string | null {
   return `Años ${String(Math.floor(year / 10) * 10).slice(-2)}`;
 }
 
-// «1984–85» -> 1984/1985, «1979» -> 1979/1979, «Navidad de 1983» -> 1983/1983.
+// «1984–85» -> 1984/1985, «1979» -> 1979/1979, «Navidad de 1983» -> 1983/1983,
+// «Años 70» -> 1970/1979 (when only the decade is known; «Años 2000» is read as the year 2000).
 // The free-text label is what people see; the years drive the decade filter.
 export function parseSeason(label: string): {
   yearFrom: number | null;
@@ -48,7 +56,12 @@ export function parseSeason(label: string): {
   const match = label.match(
     /(1[89]\d{2}|20\d{2})(?:\s*[-–\/]\s*(\d{4}|\d{2}))?/,
   );
-  if (!match) return { yearFrom: null, yearTo: null };
+  if (!match) {
+    const decade = label.match(/a[ñn]os\s+(\d0)\b/i);
+    if (!decade) return { yearFrom: null, yearTo: null };
+    const from = 1900 + Number(decade[1]);
+    return { yearFrom: from, yearTo: from + 9 };
+  }
   const from = Number(match[1]);
   if (!match[2]) return { yearFrom: from, yearTo: from };
   let to = Number(match[2]);

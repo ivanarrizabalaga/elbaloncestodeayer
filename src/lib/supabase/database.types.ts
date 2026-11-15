@@ -293,6 +293,7 @@ export type Database = {
           featured: boolean;
           height: number | null;
           id: string;
+          image_hash: string | null;
           instagram_url: string | null;
           photographer: string | null;
           proposed_by: string | null;
@@ -301,6 +302,7 @@ export type Database = {
           published_by: string | null;
           season_label: string | null;
           slug: string;
+          source_file: string | null;
           status: Database["public"]["Enums"]["photo_status"];
           storage_key: string | null;
           story: string | null;
@@ -317,6 +319,7 @@ export type Database = {
           featured?: boolean;
           height?: number | null;
           id?: string;
+          image_hash?: string | null;
           instagram_url?: string | null;
           photographer?: string | null;
           proposed_by?: string | null;
@@ -325,6 +328,7 @@ export type Database = {
           published_by?: string | null;
           season_label?: string | null;
           slug: string;
+          source_file?: string | null;
           status?: Database["public"]["Enums"]["photo_status"];
           storage_key?: string | null;
           story?: string | null;
@@ -340,6 +344,7 @@ export type Database = {
           featured?: boolean;
           height?: number | null;
           id?: string;
+          image_hash?: string | null;
           instagram_url?: string | null;
           photographer?: string | null;
           proposed_by?: string | null;
@@ -348,6 +353,7 @@ export type Database = {
           published_by?: string | null;
           season_label?: string | null;
           slug?: string;
+          source_file?: string | null;
           status?: Database["public"]["Enums"]["photo_status"];
           storage_key?: string | null;
           story?: string | null;

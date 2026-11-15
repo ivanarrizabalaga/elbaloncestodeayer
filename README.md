@@ -59,7 +59,7 @@ The seed has made-up people, teams and placeholder images (`public/seed/`), e.g.
 
 Uploading photos locally (`/admin/subir`) needs the R2 dev buckets: add the `R2_*` and `NEXT_PUBLIC_IMAGES_URL` variables from `.env.example` to `.env.local` (`pnpm env:local` keeps them).
 
-Instagram import (phase 4): `pnpm import:instagram <export-dir> [--dry-run]` creates one draft per image of an Instagram JSON export. See `docs/infrastructure.md`.
+Instagram import (phase 4): `pnpm import:instagram <export-dir> [--dry-run]` creates one draft per image of an Instagram JSON export. Folder import: `pnpm import:folder <dir> --map <map.json> [--dry-run]` does the same for a folder of photos. See `docs/infrastructure.md`.
 
 Environment variables are listed in `.env.example`.
 
