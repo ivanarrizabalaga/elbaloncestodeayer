@@ -90,7 +90,7 @@ The repo is public, so the dump never goes into the repo, the logs or the run's 
 
 ### Setup (once)
 
-1. **R2 bucket:** create `elbaloncestodeayer-backups` with the **EU jurisdiction**, private. In its settings, add an object lifecycle rule: delete objects after 180 days.
+1. **R2 bucket:** create `elbaloncestodeayer-backups` with the **EU jurisdiction**, private. In its settings, add an object lifecycle rule: delete objects after 90 days.
 2. **R2 token:** a new Account API token, «Object Read & Write», applied **only** to the backups bucket. Keep the Access Key ID and Secret Access Key.
 3. **Database URL:** in Supabase, *Connect* → *Session pooler* (IPv4: GitHub runners have no IPv6). Copy the URI and put the database password in it.
 4. **GitHub secrets:** in the repo, *Settings → Secrets and variables → Actions → New repository secret*:

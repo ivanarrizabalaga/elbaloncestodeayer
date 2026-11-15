@@ -195,7 +195,7 @@ One-off, from Jorge's account export (Instagram → "Download your information",
 - **Cloudflare R2** for images.
 - **Daily cron** (Vercel Cron) running a light query so Supabase Free does not pause the project.
 - Versioned SQL migrations in `supabase/migrations/`.
-- Backups: a weekly GitHub Action dumps the database (roles, schema, data; without sessions or tokens) to a private R2 bucket kept 180 days. Setup and restore in `docs/infrastructure.md`.
+- Backups: a weekly GitHub Action dumps the database (roles, schema, data; without sessions or tokens) to a private R2 bucket kept 90 days. Setup and restore in `docs/infrastructure.md`.
 
 ---
 
