@@ -104,7 +104,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - `slug`, `status` (`proposed` | `draft` | `published` | `rejected` | `withdrawn`)
 - `season_label` (free text, e.g. "1984–85"), `year_from`, `year_to` (for decade filtering)
 - `team`, `venue`, `competition` (free text with autocomplete from existing values; normalise later only if needed)
-- `provenance`, `photographer`, `story`, `instagram_url`, `featured`
+- `provenance`, `photographer`, `story`, `instagram_url`, `featured` (the «foto de la semana» on the home page; only one at a time: featuring a photo unfeatures the previous one. With none featured, the home shows the latest published photo)
 - `storage_key`, `width`, `height`
 - `proposed_by`, `published_by`, `published_at`, `created_at`
 

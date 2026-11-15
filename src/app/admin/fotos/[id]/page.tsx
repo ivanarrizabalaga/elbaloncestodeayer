@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConfirmButton } from "@/components/confirm-button";
 import { loadPersonOptions } from "@/lib/people";
-import { photoSrc } from "@/lib/photos";
+import { photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, withdrawnByContributor } from "@/lib/review";
 import { createClient } from "@/lib/supabase/server";
 import { savePhoto, withdrawPhoto } from "./actions";
@@ -69,6 +69,14 @@ export default async function EditPhotoPage({
     );
 
   const published = photo.status === "published";
+  // Only one photo of the week at a time (database trigger): say which one it replaces.
+  const { data: currentFeatured } = photo.featured
+    ? { data: null }
+    : await supabase
+        .from("photos")
+        .select("slug, team, season_label")
+        .eq("featured", true)
+        .maybeSingle();
   // Drafts and user proposals can be published; withdrawn photos stay down (SPEC §5).
   const ownWithdrawal =
     photo.status === "withdrawn" &&
@@ -224,6 +232,18 @@ export default async function EditPhotoPage({
             />
             Destacar como foto de la semana
           </label>
+          {currentFeatured && (
+            <p className="-mt-2 text-xs text-muted">
+              Ahora es la de{" "}
+              <Link
+                href={`/foto/${currentFeatured.slug}`}
+                className="text-accent underline-offset-4 hover:underline"
+              >
+                {photoLabel(currentFeatured)}
+              </Link>
+              ; al marcar esta, la sustituye.
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-3">
             <button

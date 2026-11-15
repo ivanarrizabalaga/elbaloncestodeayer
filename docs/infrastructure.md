@@ -101,9 +101,9 @@ The repo is public, so the dump never goes into the repo, the logs or the run's 
 | `R2_BACKUP_ACCESS_KEY_ID` | From step 2 |
 | `R2_BACKUP_SECRET_ACCESS_KEY` | From step 2 |
 | `R2_ENDPOINT` | `https://<account-id>.eu.r2.cloudflarestorage.com` (same as the app's) |
-| `R2_BACKUPS_BUCKET` | `elbaloncestodeayer-backups` |
 
-5. **First run:** *Actions → Backup → Run workflow*, then check that the file appears in the bucket.
+5. **GitHub variable:** same page, *Variables* tab → *New repository variable*: `R2_BACKUPS_BUCKET` = `elbaloncestodeayer-backups` (not a secret, so it shows in the logs).
+6. **First run:** *Actions → Backup → Run workflow*, then check that the file appears in the bucket.
 
 GitHub pauses scheduled workflows after 60 days without activity in the repo and sends an email; re-enable it from the Actions tab.
 
