@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useId, useRef } from "react";
 
 // A destructive button that asks first, in a native <dialog> (focus trap, Esc to close).
 // It must sit inside a <form>: the confirm button submits that form to `action`.
@@ -10,35 +10,47 @@ export function ConfirmButton({
   body,
   confirmLabel,
   action,
+  tone = "danger",
+  compact = false,
 }: {
   label: string;
   title: string;
   body: string;
   confirmLabel: string;
   action: (formData: FormData) => Promise<void>;
+  // "neutral" for consequential but not destructive actions (e.g. «Hacer admin»).
+  tone?: "danger" | "neutral";
+  // Smaller trigger, for table rows.
+  compact?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const size = compact ? "h-11 px-4 text-[13px]" : "h-12 px-6";
   return (
     <>
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className="inline-flex h-12 items-center rounded-full border border-danger px-6 font-semibold text-danger"
+        className={`inline-flex items-center rounded-full border font-semibold ${size} ${
+          tone === "danger"
+            ? "border-danger text-danger"
+            : "border-line-strong text-fg"
+        }`}
       >
         {label}
       </button>
       <dialog
         ref={dialog}
-        aria-labelledby="confirm-title"
-        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-line-strong bg-surface p-6 text-fg backdrop:bg-black/70"
+        aria-labelledby={titleId}
+        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-xl text-left border border-line-strong bg-surface p-6 text-fg backdrop:bg-black/70"
       >
         <h2
-          id="confirm-title"
+          id={titleId}
           className="font-display text-[26px] leading-none font-bold"
         >
           {title}
         </h2>
-        <p className="mt-3 text-sm text-muted">{body}</p>
+        <p className="mt-3 text-sm whitespace-normal text-muted">{body}</p>
         <div className="mt-6 flex flex-wrap justify-end gap-3">
           <button
             type="button"
@@ -51,7 +63,11 @@ export function ConfirmButton({
           <button
             type="submit"
             formAction={action}
-            className="inline-flex h-11 items-center rounded-full bg-danger px-5 font-semibold text-bg"
+            className={`inline-flex h-11 items-center rounded-full px-5 font-semibold ${
+              tone === "danger"
+                ? "bg-danger text-bg"
+                : "bg-accent text-on-accent"
+            }`}
           >
             {confirmLabel}
           </button>

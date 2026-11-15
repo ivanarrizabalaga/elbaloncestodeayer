@@ -89,6 +89,7 @@ export default async function PendingPage({
   const names = await profileNames(supabase, [
     ...rows.flatMap((r) => [r.created_by, r.assigned_to]),
     ...activity.map((a) => a.actor_id),
+    ...activity.map((a) => (a.action in ACCOUNT_ACTIONS ? a.target_id : null)),
   ]);
   const nameOf = (id: string | null) =>
     id === admin.id ? "Tú" : ((id && names.get(id)) ?? "Alguien");
@@ -206,6 +207,7 @@ export default async function PendingPage({
                   key={entry.id}
                   entry={entry}
                   actor={nameOf(entry.actor_id)}
+                  subject={nameOf(entry.target_id)}
                   targets={targets}
                 />
               ))}
@@ -595,20 +597,32 @@ async function activityTargets(supabase: Client, activity: Entry[]) {
 
 type Targets = Awaited<ReturnType<typeof activityTargets>>;
 
+// Admin changes to accounts, shown with the account they affected.
+const ACCOUNT_ACTIONS: Record<string, (who: string, entry: Entry) => string> = {
+  role_changed: (who, entry) =>
+    payloadText(entry.data, "role") === "admin"
+      ? `hizo admin a ${who}`
+      : `quitó de admin a ${who}`,
+  user_blocked: (who) => `bloqueó a ${who}`,
+  user_unblocked: (who) => `desbloqueó a ${who}`,
+};
+
 function ActivityRow({
   entry,
   actor,
+  subject,
   targets,
 }: {
   entry: Entry;
   actor: string;
+  subject: string;
   targets: Targets;
 }) {
   const id = entry.target_id ?? "";
   let text: ReactNode =
     entry.action === "own_photo_withdrawn"
       ? "retiró una foto que había aportado"
-      : entry.action;
+      : (ACCOUNT_ACTIONS[entry.action]?.(subject, entry) ?? entry.action);
   let photo: PhotoRef | null = null;
   // [label, already undone]
   let undo: [string, boolean] | null = null;

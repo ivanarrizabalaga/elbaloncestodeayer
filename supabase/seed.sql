@@ -217,3 +217,7 @@ insert into public.review_items (kind, photo_id, payload, created_by, created_at
   ('photo_proposal', 'c0000000-0000-0000-0000-000000000010',
    '{"comment": "Creo que es del torneo de Navidad del 85. Salgo yo el tercero."}',
    'a0000000-0000-0000-0000-000000000003', now() - interval '4 hours');
+
+-- «Invitado por» in /admin/usuarios.
+update public.profiles set invited_by = 'a0000000-0000-0000-0000-000000000001'
+where id in ('a0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000003');

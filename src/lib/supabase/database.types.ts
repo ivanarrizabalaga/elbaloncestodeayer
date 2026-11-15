@@ -648,6 +648,26 @@ export type Database = {
     };
     Functions: {
       accept_invitation: { Args: { p_token: string }; Returns: string };
+      admin_user_list: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          blocked_at: string;
+          created_at: string;
+          display_name: string;
+          email: string;
+          id: string;
+          invited_by_name: string;
+          last_sign_in_at: string;
+          memories_count: number;
+          open_reviews_count: number;
+          person_name: string;
+          person_slug: string;
+          photos_count: number;
+          role: Database["public"]["Enums"]["user_role"];
+          suggestions_count: number;
+          tags_count: number;
+        }[];
+      };
       claim_person: { Args: { p_person_id: string }; Returns: string };
       dispute_invitation: {
         Args: { p_suggested_name: string; p_token: string };
@@ -678,6 +698,17 @@ export type Database = {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_published_photo: { Args: { p_photo_id: string }; Returns: boolean };
       remove_own_tag: { Args: { p_tag_id: string }; Returns: undefined };
+      set_user_blocked: {
+        Args: { p_blocked: boolean; p_user_id: string };
+        Returns: undefined;
+      };
+      set_user_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["user_role"];
+          p_user_id: string;
+        };
+        Returns: undefined;
+      };
       withdraw_own_photo: { Args: { p_photo_id: string }; Returns: string };
     };
     Enums: {
