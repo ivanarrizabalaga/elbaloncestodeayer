@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { signOut } from "@/app/entrar/actions";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { countOpenReviewItems } from "@/lib/review";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
   const user = await getCurrentUser();
+  const pending = user?.isAdmin
+    ? await countOpenReviewItems(await createClient())
+    : 0;
 
   return (
     <header className="border-b border-line">
@@ -19,10 +23,16 @@ export async function SiteHeader() {
           <div className="flex items-center gap-3 text-sm">
             {user.isAdmin && (
               <Link
-                href="/admin/subir"
-                className="flex min-h-11 items-center rounded-full bg-accent px-4 font-semibold text-on-accent"
+                href="/admin/pendiente"
+                className="flex min-h-11 items-center gap-2 rounded-full bg-accent px-4 font-semibold text-on-accent"
               >
-                Subir foto
+                Admin
+                {pending > 0 && (
+                  <span className="rounded-full bg-bg px-2 text-xs font-bold text-accent">
+                    <span className="sr-only">, pendientes: </span>
+                    {pending}
+                  </span>
+                )}
               </Link>
             )}
             <span className="hidden text-muted sm:inline">

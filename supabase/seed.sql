@@ -157,3 +157,54 @@ select public.invitation_token_hash('prueba-luis'), 'user', t.person_id, t.id,
        'a0000000-0000-0000-0000-000000000001'
 from public.tags t
 where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 2;
+
+-- ---------------------------------------------------------------------------
+-- Review queue (/admin/pendiente): two users suggest the same name for ?4 (shown as one
+-- item), a new name for ?8, a «No soy yo» on Andrés and a withdrawal request.
+-- ---------------------------------------------------------------------------
+
+insert into public.review_items (kind, photo_id, tag_id, person_id, payload, created_by, created_at)
+select 'name_suggestion', t.photo_id, t.id, 'b0000000-0000-0000-0000-000000000012', '{}', u.id,
+       now() - u.ago
+from public.tags t,
+  (values ('a0000000-0000-0000-0000-000000000002'::uuid, interval '3 hours'),
+          ('a0000000-0000-0000-0000-000000000003'::uuid, interval '1 hour')) as u(id, ago)
+where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 4;
+
+insert into public.review_items (kind, photo_id, tag_id, payload, created_by, created_at)
+select 'name_suggestion', t.photo_id, t.id, '{"name": "Paco Inventado"}',
+       'a0000000-0000-0000-0000-000000000003', now() - interval '1 day'
+from public.tags t
+where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 8;
+
+insert into public.review_items (kind, tag_id, person_id, payload, created_at)
+select 'tag_dispute', t.id, t.person_id, '{"suggested_name": "Andrés Soler"}',
+       now() - interval '2 days'
+from public.tags t
+where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 5;
+
+insert into public.review_items (kind, photo_id, payload, created_at) values
+  ('removal_request', 'c0000000-0000-0000-0000-000000000006',
+   '{"name": "Un vecino", "reason": "Salgo yo y prefiero que no esté publicada."}',
+   now() - interval '2 hours');
+
+-- ---------------------------------------------------------------------------
+-- Recent activity: what users published without review (normally written by triggers).
+-- ---------------------------------------------------------------------------
+
+insert into public.activity (actor_id, action, target_type, target_id, data, created_at)
+select 'a0000000-0000-0000-0000-000000000003', 'tag_added', 'tag', t.id,
+       jsonb_build_object('photo_id', t.photo_id, 'person_id', t.person_id),
+       now() - interval '20 minutes'
+from public.tags t
+where t.photo_id = 'c0000000-0000-0000-0000-000000000001' and t.label_number = 7;
+
+insert into public.activity (actor_id, action, target_type, target_id, data, created_at)
+select m.author_id, 'memory_added', 'memory', m.id, jsonb_build_object('photo_id', m.photo_id),
+       m.created_at
+from public.memories m
+where m.hidden_at is null;
+
+insert into public.activity (actor_id, action, target_type, target_id, created_at) values
+  ('a0000000-0000-0000-0000-000000000002', 'person_claimed', 'person',
+   'b0000000-0000-0000-0000-000000000001', now() - interval '6 days');

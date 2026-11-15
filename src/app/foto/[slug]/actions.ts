@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { addTag } from "@/app/admin/fotos/[id]/actions";
 import { createPerson, nextLabelNumber } from "@/lib/people";
+import { reviewGroupKey } from "@/lib/review";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 
 // Contributions from the public photo page (SPEC §2). Users act through RLS:
@@ -95,8 +96,8 @@ export async function suggestName(input: {
     return error ? { ok: false, error: "No se pudo guardar." } : { ok: true };
   }
 
-  const { error } = await supabase.from("review_items").insert({
-    kind: "name_suggestion",
+  const suggestion = {
+    kind: "name_suggestion" as const,
     tag_id: input.tagId,
     photo_id: input.photoId,
     person_id: "id" in input.person ? input.person.id : null,
@@ -105,7 +106,21 @@ export async function suggestName(input: {
       "newName" in input.person
         ? { name: input.person.newName.trim().slice(0, 200) }
         : {},
-  });
+  };
+  // The same person suggesting the same thing twice is still one suggestion.
+  const { data: mine } = await supabase
+    .from("review_items")
+    .select("id, kind, tag_id, person_id, payload")
+    .eq("kind", "name_suggestion")
+    .eq("tag_id", input.tagId)
+    .eq("created_by", user.id)
+    .eq("status", "open");
+  const key = reviewGroupKey({ id: "", ...suggestion });
+  if (mine?.some((item) => reviewGroupKey(item) === key)) {
+    return { ok: true, message: "¡Gracias! Lo revisaremos pronto." };
+  }
+
+  const { error } = await supabase.from("review_items").insert(suggestion);
   return error
     ? { ok: false, error: "No se pudo enviar la sugerencia." }
     : { ok: true, message: "¡Gracias! Lo revisaremos pronto." };
