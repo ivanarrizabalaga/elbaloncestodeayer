@@ -225,7 +225,10 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 
 - When claiming their profile, a person agrees to their name appearing on photos where they are tagged.
 - Removing a tag is immediate; a photo withdrawal request arrives as priority.
-- Privacy page stating who runs the archive and how to request changes.
+- Privacy page stating who runs the archive (the controller's name comes from the `PRIVACY_CONTROLLER_NAME` environment variable, so it is not in the public repo) and how to request changes. Contact: `hola@elbaloncestodeayer.com`, forwarded to the archive's Gmail with Cloudflare Email Routing.
+- Accounts are for people aged 14 or over (LOPDGDD art. 7), stated on the privacy page; accounts are by invitation, so stating it is enough.
+- **Minors:** the archive is of old photos. Photos showing people who are minors **today** are not published without their parents' permission, and those people are never tagged by name. The proposal checkbox includes it; admins apply it when reviewing; a withdrawal request for a minor is always granted.
+- **Copy of your data (GDPR art. 15 / 20):** requested by email and answered within a month. No button: see §12.
 - No tracking cookies or invasive analytics.
 - The repo's MIT licence covers **only the code**; the photos belong to their authors or to whoever contributes them.
 
@@ -240,4 +243,5 @@ Decisions deliberately postponed. Revisit them in the phase noted.
 - **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.
 - **Mentions in memories** (after phase 6). Typing `@` in a memory picks a person from the archive; it links to their page and, if that person has a claimed account, emails them («Pepe te ha mencionado en un recuerdo de esta foto») with a link back. The aim is to pull more people into telling each photo's story. Open points: only notify claimed accounts (never invent emails); a per-account opt-out and a daily cap so it never feels like spam; keep within the Resend free tier; an unclaimed person could get a «Invitar» suggestion instead of an email.
 - **Social links** (when convenient). Check the real Instagram account of the archive and link it (today the footer links to the `#elbaloncestodeayer` hashtag); add a link to the YouTube channel. Both in the footer, and on the privacy page as a contact channel.
+- **Data export** (only if requests come). Today a copy of someone's data is requested by email and prepared by hand. If it becomes frequent, a `pnpm prod:export-user <email>` script that zips a JSON (account, contributions, photos they are tagged in) and the originals of their photos; a button in `/cuenta` only if it gets really common.
 - **Installable web app (PWA)** (when convenient). A web app manifest (name, icons, theme colour, `display: standalone`) so people can add the site to their phone's home screen and open it like an app, without a native app. No offline mode or push notifications unless there is a clear need.

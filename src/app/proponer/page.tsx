@@ -76,7 +76,7 @@ export default async function ProposePage({
             placeholder:
               "Equipo, temporada, dónde se hizo, quién sale, de quién es la foto…",
           }}
-          confirm="Las fotos son mías o tengo permiso para compartirlas, y acepto que se publiquen en el archivo."
+          confirm="Las fotos son mías o tengo permiso para compartirlas, no sale nadie que hoy sea menor de edad (salvo con permiso de sus padres) y acepto que se publiquen en el archivo."
         />
       )}
 
