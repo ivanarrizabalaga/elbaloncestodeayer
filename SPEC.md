@@ -145,6 +145,10 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - Photos uploaded by admins on someone else's behalf (e.g. the Instagram import) have no `proposed_by`; they follow the normal withdrawal request.
 - Implemented as a `SECURITY DEFINER` function (`withdraw_own_photo`) in phase 5.
 
+**Proposing photos** — `/proponer`, for signed-in users who are not blocked. They upload one or more photos with an optional comment and confirm they may share them. Each photo is created as `proposed` with a `photo_proposal` item in the queue, and the user sees it under «Tus fotos». An admin opens it, completes the details, tags it and publishes it, which resolves the item; or rejects it, which deletes the files and keeps the row as `rejected` so the user sees the outcome. Limit: 30 photos per user per day.
+
+**Withdrawal request** — `/foto/[slug]/retirar`, linked from every photo page. The form asks for a reason (required) and, optionally, a name (visitors only) and an email or phone to reply to, which only admins see. The contributor of the photo sees «Retirar esta foto» there instead and takes it down at once. A withdrawn photo cannot be republished from the admin pages.
+
 **Suggested name** — `review_item`; on acceptance an existing person is assigned (matched by name, ignoring accents and case) or a new one is created. Identical suggestions for the same face are shown as one item, and accepting one dismisses the other open suggestions for that face.
 
 **«No soy yo» in the queue** — *Mantener* closes it. *Quitar el nombre* turns the face back into «?», expires the invitation and, if a name was proposed, files it as a name suggestion credited to whoever proposed it.

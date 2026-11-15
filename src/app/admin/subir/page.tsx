@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PhotoGrid } from "@/components/photo-grid";
 import { createClient } from "@/lib/supabase/server";
-import { Uploader } from "./uploader";
+import { PhotoUploader } from "@/components/photo-uploader";
+import { finishUpload, startUpload } from "./actions";
 
 export const metadata: Metadata = { title: "Subir fotos" };
 
@@ -25,7 +26,11 @@ export default async function UploadPage() {
         </p>
       </div>
 
-      <Uploader />
+      <PhotoUploader
+        start={startUpload}
+        finish={finishUpload}
+        doneLabel="Lista, en borradores"
+      />
 
       <section aria-labelledby="borradores" className="flex flex-col gap-4">
         <h2

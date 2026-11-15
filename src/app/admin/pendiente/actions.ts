@@ -6,6 +6,7 @@ import { createPerson } from "@/lib/people";
 import { payloadText } from "@/lib/review";
 import { fold } from "@/lib/slug";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
+import { deletePhotoFiles } from "@/lib/uploads";
 
 // The review queue and Recent activity. Every action runs as the signed-in admin, so RLS
 // checks it again. The form only says which items; what to do is read from the database.
@@ -246,4 +247,31 @@ async function findPersonByName(
     .is("merged_into", null);
   const wanted = fold(name);
   return data?.find((p) => fold(p.full_name) === wanted)?.id ?? null;
+}
+
+// Proposed photo not accepted: the files are deleted and the row stays as 'rejected' (without
+// files) so the user sees what happened in «Tus fotos».
+export async function rejectProposal(formData: FormData) {
+  const admin = await requireAdmin();
+  const { supabase, items } = await openItems(ids(formData));
+  const item = items[0];
+  if (item.kind !== "photo_proposal" || !item.photo_id) fail();
+
+  const { data: photo } = await supabase
+    .from("photos")
+    .update({
+      status: "rejected",
+      storage_key: null,
+      width: null,
+      height: null,
+    })
+    .eq("id", item.photo_id)
+    .eq("status", "proposed")
+    .select("id")
+    .maybeSingle();
+  if (!photo) fail();
+  await deletePhotoFiles(photo.id);
+
+  await close([item.id], "dismissed", admin.id);
+  revalidatePath(PATH);
 }

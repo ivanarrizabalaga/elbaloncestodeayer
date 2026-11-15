@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadPersonOptions } from "@/lib/people";
 import { photoSrc } from "@/lib/photos";
+import { payloadText } from "@/lib/review";
 import { createClient } from "@/lib/supabase/server";
 import { savePhoto } from "./actions";
 import { TagEditor } from "./tag-editor";
@@ -13,8 +14,18 @@ const MESSAGES: Record<string, string> = {
   guardada: "Cambios guardados.",
   publicada: "Foto publicada.",
 };
+const STATUS_LABEL: Record<string, string> = {
+  draft: "Borrador",
+  proposed: "Propuesta",
+  published: "Publicada",
+  withdrawn: "Retirada",
+  rejected: "Rechazada",
+};
+
 const ERRORS: Record<string, string> = {
   guardar: "No se pudieron guardar los cambios.",
+  retirada:
+    "Esta foto está retirada y no se puede volver a publicar desde aquí.",
   instagram:
     "El enlace de Instagram debe empezar por https://www.instagram.com/",
 };
@@ -30,7 +41,7 @@ export default async function EditPhotoPage({
   const { data: photo } = await supabase
     .from("photos")
     .select(
-      "id, slug, status, season_label, team, venue, competition, provenance, photographer, story, instagram_url, featured, storage_key, width, height",
+      "id, slug, status, season_label, team, venue, competition, provenance, photographer, story, instagram_url, featured, storage_key, width, height, proposed_by",
     )
     .eq("id", id)
     .maybeSingle();
@@ -56,6 +67,11 @@ export default async function EditPhotoPage({
     );
 
   const published = photo.status === "published";
+  // Drafts and user proposals can be published; withdrawn photos stay down (SPEC §5).
+  const publishable = photo.status === "draft" || photo.status === "proposed";
+  const proposal = photo.proposed_by
+    ? await loadProposal(supabase, photo.id, photo.proposed_by)
+    : null;
   const message = typeof ok === "string" ? MESSAGES[ok] : undefined;
   const problem = typeof error === "string" ? ERRORS[error] : undefined;
 
@@ -77,7 +93,7 @@ export default async function EditPhotoPage({
           <span
             className={`rounded-full px-3 py-1 font-semibold ${published ? "bg-accent text-on-accent" : "border border-line-strong"}`}
           >
-            {published ? "Publicada" : "Borrador"}
+            {STATUS_LABEL[photo.status]}
           </span>
           <Link
             href={`/foto/${photo.slug}`}
@@ -95,6 +111,22 @@ export default async function EditPhotoPage({
         >
           {problem ?? message}
         </p>
+      )}
+
+      {proposal && (
+        <section
+          aria-label="Propuesta"
+          className="flex flex-col gap-1 rounded-lg bg-surface-2 px-4 py-3 text-sm"
+        >
+          <p>
+            Propuesta por <strong>{proposal.name}</strong>.
+            {photo.status === "withdrawn" &&
+              " La retiró quien la aportó: no la vuelvas a publicar salvo que te lo pida."}
+          </p>
+          {proposal.comment && (
+            <p className="text-muted">Comentario: «{proposal.comment}»</p>
+          )}
+        </section>
       )}
 
       <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
@@ -194,7 +226,7 @@ export default async function EditPhotoPage({
             >
               {published ? "Guardar cambios" : "Guardar borrador"}
             </button>
-            {!published && (
+            {publishable && (
               <button
                 type="submit"
                 name="intent"
@@ -205,7 +237,7 @@ export default async function EditPhotoPage({
               </button>
             )}
           </div>
-          {!published && (
+          {publishable && (
             <p className="text-xs text-muted">
               Al publicar, la foto aparece en el archivo y su dirección pasa a
               ser fija (equipo y temporada).
@@ -253,4 +285,31 @@ function Field({
       )}
     </label>
   );
+}
+
+// Who proposed it and what they said about it (the comment lives in the queue item).
+async function loadProposal(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  photoId: string,
+  proposedBy: string,
+) {
+  const [{ data: profile }, { data: item }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", proposedBy)
+      .maybeSingle(),
+    supabase
+      .from("review_items")
+      .select("payload")
+      .eq("photo_id", photoId)
+      .eq("kind", "photo_proposal")
+      .order("created_at")
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  return {
+    name: profile?.display_name ?? "un usuario",
+    comment: item ? payloadText(item.payload, "comment") : null,
+  };
 }

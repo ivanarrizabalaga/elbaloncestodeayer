@@ -35,6 +35,14 @@ export async function SiteHeader() {
                 )}
               </Link>
             )}
+            {!user.isAdmin && !user.isBlocked && (
+              <Link
+                href="/proponer"
+                className="flex min-h-11 items-center rounded-full bg-accent px-4 font-semibold text-on-accent"
+              >
+                Proponer foto
+              </Link>
+            )}
             <span className="hidden text-muted sm:inline">
               {user.displayName ?? user.email}
             </span>

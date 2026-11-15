@@ -96,3 +96,21 @@ export async function putPublic(
     throw new Error(`Could not write ${key}: ${response.status}`);
   }
 }
+
+// Delete one object (a 404 counts as done: the goal is that it is gone).
+async function deleteObject(bucket: string, key: string): Promise<void> {
+  const response = await client().fetch(objectUrl(env(bucket), key), {
+    method: "DELETE",
+  });
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`Could not delete ${key}: ${response.status}`);
+  }
+}
+
+export async function deleteOriginal(key: string): Promise<void> {
+  await deleteObject("R2_ORIGINALS_BUCKET", key);
+}
+
+export async function deletePublic(key: string): Promise<void> {
+  await deleteObject("R2_PUBLIC_BUCKET", key);
+}

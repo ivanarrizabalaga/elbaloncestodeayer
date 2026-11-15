@@ -34,6 +34,8 @@ export type CurrentUser = {
   email: string | undefined;
   displayName: string | null;
   isAdmin: boolean;
+  // Blocked accounts can browse and take their own photos down, but not contribute.
+  isBlocked: boolean;
 };
 
 // The signed-in user, or null for visitors. Validates the JWT (getClaims), never trusts cookies blindly.
@@ -57,6 +59,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: claims.email,
     displayName: profile?.display_name ?? null,
     isAdmin: profile?.role === "admin" && !profile.blocked_at,
+    isBlocked: Boolean(profile.blocked_at),
   };
 }
 

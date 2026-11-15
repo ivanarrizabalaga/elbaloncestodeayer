@@ -100,7 +100,12 @@ export async function savePhoto(formData: FormData) {
     featured: formData.get("featured") === "on",
   };
 
-  const publishing = intent === "publish" && photo.status !== "published";
+  if (intent === "publish" && photo.status === "withdrawn") {
+    redirect(`/admin/fotos/${id}?error=retirada`);
+  }
+  const publishing =
+    intent === "publish" &&
+    (photo.status === "draft" || photo.status === "proposed");
   let publishFields = {};
   if (publishing) {
     const base = slugify(
@@ -126,6 +131,20 @@ export async function savePhoto(formData: FormData) {
     .update({ ...changes, ...publishFields })
     .eq("id", id);
   if (error) redirect(`/admin/fotos/${id}?error=guardar`);
+
+  // A published proposal leaves the review queue.
+  if (publishing && photo.status === "proposed") {
+    await supabase
+      .from("review_items")
+      .update({
+        status: "resolved",
+        resolved_by: admin.id,
+        resolved_at: new Date().toISOString(),
+      })
+      .eq("photo_id", id)
+      .eq("kind", "photo_proposal")
+      .eq("status", "open");
+  }
 
   redirect(`/admin/fotos/${id}?ok=${publishing ? "publicada" : "guardada"}`);
 }

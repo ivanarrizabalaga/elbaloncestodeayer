@@ -678,6 +678,7 @@ export type Database = {
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_published_photo: { Args: { p_photo_id: string }; Returns: boolean };
       remove_own_tag: { Args: { p_tag_id: string }; Returns: undefined };
+      withdraw_own_photo: { Args: { p_photo_id: string }; Returns: string };
     };
     Enums: {
       photo_status:
