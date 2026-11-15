@@ -172,6 +172,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - Derivatives are served publicly from the public bucket through a custom domain; the **original** is kept in the private bucket.
 - Direct browser upload to R2 with a presigned URL; processing happens afterwards on the server.
 - No paid on-the-fly transformations.
+- **Link previews** (WhatsApp, etc.): `/foto/[slug]/vista-previa` converts the large derivative into a 1200×630 JPEG (WhatsApp handles JPEG more reliably than WebP), cached by the CDN. Photo, person and home pages use it as their Open Graph image (a person page uses their latest photo; the home page, the featured one).
 
 ---
 
@@ -238,3 +239,4 @@ Decisions deliberately postponed. Revisit them in the phase noted.
 - **Account deletion / right to be forgotten** (decided in phase 6). «Borrar mi cuenta» in `/cuenta` (`delete_own_account`): the account and profile are deleted, their memories are deleted, their person is released, tags they added stay without author, their unpublished photos are deleted with their files, and published photos stay without contributor (the page tells them to withdraw them first if they want them gone). The last active admin cannot delete their account. Documented on the privacy page.
 - **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.
 - **Mentions in memories** (after phase 6). Typing `@` in a memory picks a person from the archive; it links to their page and, if that person has a claimed account, emails them («Pepe te ha mencionado en un recuerdo de esta foto») with a link back. The aim is to pull more people into telling each photo's story. Open points: only notify claimed accounts (never invent emails); a per-account opt-out and a daily cap so it never feels like spam; keep within the Resend free tier; an unclaimed person could get a «Invitar» suggestion instead of an email.
+- **Social links** (when convenient). Check the real Instagram account of the archive and link it (today the footer links to the `#elbaloncestodeayer` hashtag); add a link to the YouTube channel. Both in the footer, and on the privacy page as a contact channel.

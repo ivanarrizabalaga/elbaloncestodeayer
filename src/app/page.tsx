@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { FaceCrop } from "@/components/face-crop";
 import { photoLabel, photoSrc } from "@/lib/photos";
+import {
+  openGraph,
+  previewImage,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+} from "@/lib/seo";
 import { createClient } from "@/lib/supabase/server";
 import { GalleryFilters, type Filters } from "./gallery-filters";
 
@@ -21,6 +28,30 @@ function readFilters(params: SearchParams): Filters & { page: number } {
     venue: first(params.pabellon),
     unnamed: first(params["sin-nombre"]) === "1",
     page: Number.isFinite(page) && page > 1 ? Math.min(page, 50) : 1,
+  };
+}
+
+// Home preview: the featured photo (else the latest published one).
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = await createClient();
+  const { data: featured } = await supabase
+    .from("photos")
+    .select("slug, team, season_label")
+    .eq("status", "published")
+    .order("featured", { ascending: false })
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return {
+    alternates: { canonical: "/" },
+    openGraph: openGraph({
+      title: SITE_NAME,
+      description: SITE_DESCRIPTION,
+      url: "/",
+      images: featured
+        ? [previewImage(featured.slug, `Foto: ${photoLabel(featured)}`)]
+        : undefined,
+    }),
   };
 }
 

@@ -6,6 +6,7 @@ import { FaceCrop } from "@/components/face-crop";
 import { PhotoGrid, type GridPhoto } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { photoLabel, photoSrc } from "@/lib/photos";
+import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
 import { INVITATION_ERRORS } from "@/lib/invitations";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
@@ -27,10 +28,43 @@ export async function generateMetadata({
 }: PageProps<"/persona/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const person = await getPerson(slug);
-  if (!person) return {};
+  if (!person || person.merged_into) return {};
+
+  // Preview image: their most recent published photo.
+  const supabase = await createClient();
+  const { data: tags } = await supabase
+    .from("tags")
+    .select("photo:photos!inner(slug, status, published_at)")
+    .eq("person_id", person.id)
+    .is("removed_at", null)
+    .eq("photo.status", "published");
+  const photos = (tags ?? [])
+    .map((t) => t.photo)
+    .sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
+  const count = photos.length;
+  const description =
+    count > 0
+      ? `${person.full_name} sale en ${count === 1 ? "1 foto" : `${count} fotos`} de El baloncesto de ayer. ¿Le conoces?`
+      : `${person.full_name} en El baloncesto de ayer.`;
+
   return {
     title: person.full_name,
-    description: `Fotos de ${person.full_name} en El baloncesto de ayer.`,
+    description,
+    alternates: { canonical: `/persona/${person.slug}` },
+    openGraph: openGraph({
+      type: "profile",
+      title: person.full_name,
+      description,
+      url: `/persona/${person.slug}`,
+      images: photos[0]
+        ? [
+            previewImage(
+              photos[0].slug,
+              `Foto en la que sale ${person.full_name}`,
+            ),
+          ]
+        : undefined,
+    }),
   };
 }
 
