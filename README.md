@@ -34,6 +34,8 @@ pnpm check        # lint + typecheck + format check + build
 
 Signing in locally: accounts are created by invitation (phase 5), so create one with `pnpm admin:grant you@example.test`, then request a link at http://localhost:3000/entrar. The email does not leave your machine: open it in Mailpit (http://127.0.0.1:54324).
 
+If the email arrives in English («Your sign-in link») the local Auth server lost the Spanish template: it happens right after starting, and after editing `supabase/templates/` (the file is bind-mounted, and tools that rewrite it break the mount). Run `pnpm db:stop && pnpm db:start` (data is kept) and request a new link.
+
 Admins:
 
 ```bash

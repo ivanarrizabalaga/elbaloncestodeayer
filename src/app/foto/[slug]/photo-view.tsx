@@ -1,8 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition, type ReactNode } from "react";
 import { InviteButton } from "@/components/invite-button";
-import { useState, type ReactNode } from "react";
+import {
+  PersonPicker,
+  type PersonOption,
+  type PickedPerson,
+} from "@/components/person-picker";
+import { PendingPoint, pointFrom } from "@/components/tag-point";
+import {
+  removeOwnTag,
+  suggestName,
+  tagFace,
+  type ActionResult,
+} from "./actions";
 
 export type PhotoTag = {
   id: string;
@@ -13,14 +26,19 @@ export type PhotoTag = {
   person: { id: string; name: string; slug: string; claimed: boolean } | null;
 };
 
+// Who is looking: null for visitors. personId = the person their account is linked to.
+export type Viewer = { isAdmin: boolean; personId: string | null } | null;
+
 type Props = {
+  photoId: string;
   src: string;
   width: number;
   height: number;
   alt: string;
   tags: PhotoTag[];
-  // Signed-in, unblocked users can invite people without an account.
-  canInvite: boolean;
+  viewer: Viewer;
+  // For the «¿Quién es?» search (empty for visitors).
+  people: PersonOption[];
   // Server-rendered pieces placed around the interactive parts.
   heading: ReactNode;
   details: ReactNode;
@@ -31,12 +49,14 @@ type Props = {
 // The photo with its numbered markers and the «En la foto» list share one selection.
 // Mobile: photo, heading, people, story. Desktop: photo + story | heading + people.
 export function PhotoView({
+  photoId,
   src,
   width,
   height,
   alt,
   tags,
-  canInvite,
+  viewer,
+  people,
   heading,
   details,
   actions,
@@ -44,6 +64,51 @@ export function PhotoView({
 }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showTags, setShowTags] = useState(true);
+  // «Etiquetar a alguien»: waiting for a click on a face, then the point picked.
+  const [tagging, setTagging] = useState(false);
+  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  // «Sé quién es» open on this tag.
+  const [naming, setNaming] = useState<string | null>(null);
+  // Feedback is shown next to where it happened: a tag row, or under the photo.
+  const [notice, setNotice] = useState<{
+    text: string;
+    error: boolean;
+    tagId?: string;
+  } | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function run(
+    action: () => Promise<ActionResult>,
+    after: () => void,
+    tagId?: string,
+  ) {
+    startTransition(async () => {
+      const result = await action();
+      if (result.ok) {
+        after();
+        setNotice(
+          result.message ? { text: result.message, error: false, tagId } : null,
+        );
+        router.refresh();
+      } else {
+        setNotice({ text: result.error, error: true, tagId });
+      }
+    });
+  }
+
+  function stopTagging() {
+    setTagging(false);
+    setPoint(null);
+  }
+
+  function saveTag(person: PickedPerson) {
+    if (!point) return;
+    run(
+      () => tagFace({ photoId, x: point.x, y: point.y, person }),
+      stopTagging,
+    );
+  }
 
   const identified = tags.filter((tag) => tag.person).length;
   const unknown = tags.length - identified;
@@ -73,6 +138,16 @@ export function PhotoView({
             alt={alt}
             className="absolute inset-0 h-full w-full"
           />
+
+          {tagging && (
+            <button
+              type="button"
+              aria-label="Toca la cara que quieres etiquetar"
+              onClick={(event) => setPoint(pointFrom(event))}
+              className="absolute inset-0 z-10 cursor-crosshair bg-bg/20"
+            />
+          )}
+          {point && <PendingPoint point={point} />}
 
           {showTags &&
             tags.map((tag) => {
@@ -130,7 +205,36 @@ export function PhotoView({
             <ExpandIcon />
           </a>
         </div>
-        {tags.length > 0 && (
+        {tagging &&
+          (point ? (
+            <PersonPicker
+              people={people}
+              pending={pending}
+              onPick={saveTag}
+              onCancel={stopTagging}
+              newNameLabel={(name) =>
+                viewer?.isAdmin
+                  ? `Crear «${name}»`
+                  : `No está: proponer «${name}»`
+              }
+            />
+          ) : (
+            <p
+              role="status"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm"
+            >
+              Toca la cara de la persona que quieres etiquetar.
+              <button
+                type="button"
+                onClick={stopTagging}
+                className="inline-flex min-h-11 items-center text-muted"
+              >
+                Cancelar
+              </button>
+            </p>
+          ))}
+        {notice && !notice.tagId && <Notice notice={notice} />}
+        {tags.length > 0 && !tagging && (
           <figcaption className="text-[13px] text-muted">
             Toca un número para ver quién es.
             {unknown > 0 &&
@@ -203,7 +307,36 @@ export function PhotoView({
                         </span>
                       </span>
                     </button>
-                    {canInvite && tag.person && !tag.person.claimed && (
+                    {viewer && !tag.person && naming !== tag.id && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNaming(tag.id);
+                          setNotice(null);
+                        }}
+                        className="inline-flex h-9 flex-none items-center rounded-full bg-accent px-3.5 text-[13px] font-semibold text-on-accent"
+                      >
+                        Sé quién es
+                      </button>
+                    )}
+                    {viewer &&
+                      tag.person &&
+                      tag.person.id === viewer.personId && (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() =>
+                            run(
+                              () => removeOwnTag(tag.id),
+                              () => {},
+                            )
+                          }
+                          className="inline-flex h-9 flex-none items-center rounded-full border border-line-strong px-3.5 text-[13px]"
+                        >
+                          Quitar mi etiqueta
+                        </button>
+                      )}
+                    {viewer && tag.person && !tag.person.claimed && (
                       <InviteButton
                         personId={tag.person.id}
                         personName={tag.person.name}
@@ -219,10 +352,66 @@ export function PhotoView({
                         <ChevronIcon />
                       </Link>
                     )}
+                    {naming === tag.id && (
+                      <div className="mt-1 mb-2 w-full">
+                        <PersonPicker
+                          people={people}
+                          pending={pending}
+                          allowUnknown={false}
+                          intro="¿Quién es? Si está en el archivo, elígelo; si no, escribe su nombre."
+                          onPick={(person) =>
+                            person &&
+                            run(
+                              () =>
+                                suggestName({ tagId: tag.id, photoId, person }),
+                              () => setNaming(null),
+                              tag.id,
+                            )
+                          }
+                          onCancel={() => setNaming(null)}
+                          newNameLabel={(name) =>
+                            viewer?.isAdmin
+                              ? `Crear «${name}»`
+                              : `Proponer «${name}»`
+                          }
+                        />
+                      </div>
+                    )}
+                    {notice?.tagId === tag.id && (
+                      <div className="mb-2 w-full">
+                        <Notice notice={notice} />
+                      </div>
+                    )}
                   </li>
                 );
               })}
             </ul>
+          )}
+          {viewer ? (
+            !tagging && (
+              <button
+                type="button"
+                onClick={() => {
+                  setTagging(true);
+                  setShowTags(true);
+                  setNotice(null);
+                }}
+                className="mt-1.5 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent font-semibold text-on-accent"
+              >
+                <span aria-hidden="true" className="text-lg leading-none">
+                  +
+                </span>
+                Etiquetar a alguien
+              </button>
+            )
+          ) : (
+            <p className="text-sm text-muted">
+              ¿Conoces a alguien de la foto?{" "}
+              <Link href="/entrar" className="text-fg underline">
+                Entra
+              </Link>{" "}
+              para etiquetarle o añadir un recuerdo.
+            </p>
           )}
           {actions}
         </section>
@@ -283,5 +472,16 @@ function ChevronIcon() {
     >
       <path d="M9 6l6 6-6 6" />
     </svg>
+  );
+}
+
+function Notice({ notice }: { notice: { text: string; error: boolean } }) {
+  return (
+    <p
+      role={notice.error ? "alert" : "status"}
+      className={`rounded-lg px-3 py-2 text-sm ${notice.error ? "border border-accent" : "bg-surface-2"}`}
+    >
+      {notice.text}
+    </p>
   );
 }
