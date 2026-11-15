@@ -9,6 +9,7 @@ export function AdminNav({ pending }: { pending: number }) {
   const links = [
     { href: "/admin/pendiente", label: "Pendiente", badge: pending },
     { href: "/admin/subir", label: "Subir fotos", badge: 0 },
+    { href: "/admin/usuarios", label: "Usuarios y admins", badge: 0 },
   ];
   return (
     <nav aria-label="Administración" className="border-b border-line">

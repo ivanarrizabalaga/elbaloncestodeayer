@@ -133,7 +133,9 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 3. *Yes* → email → magic link (Supabase Auth) → agrees to his name appearing → his `profile` is linked to the `person` (`people.claimed_by`) and, if his `display_name` is empty, it is set to the person's `full_name` (he can change it later) → welcome.
 4. *Not me* («No soy yo») → creates a `review_item` of kind `tag_dispute` (can propose the correct name).
 
-**Invite an admin** — same flow, with `role = admin`; if the email already has an account, it is promoted on acceptance.
+**Invite an admin** — from `/admin/usuarios`: the admin types an email; an invitation with `role = admin` is bound to that email and a magic link is sent to it (the account is created if needed), and the link is also shown to copy. Accepting promotes the account; only the account with that email can accept it. Pending admin invitations can be resent (new link, 7 more days) or cancelled. The optional message in the mockup was left out: the email is Supabase's sign-in email.
+
+**Users and admins** — `/admin/usuarios` lists admins (with pending invitations) and users (with their person, who invited them and their contributions; searchable). Make admin, remove admin, block and unblock ask for confirmation, go through `SECURITY DEFINER` functions and are recorded in activity. An admin cannot block themselves, and the last active admin cannot be removed (database trigger). «Invitado por» is the inviter of the first invitation an account accepted.
 
 **Remove own tag** — immediate (`removed_at`), recorded in `activity`.
 

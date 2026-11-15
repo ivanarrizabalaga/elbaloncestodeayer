@@ -21,6 +21,8 @@ export const INVITATION_ERRORS: Record<string, string> = {
   person_already_claimed: "Otra cuenta ya está enlazada con esta persona.",
   account_already_linked:
     "Tu cuenta ya está enlazada con otra persona del archivo.",
+  invitation_other_email:
+    "Esta invitación es para otro email. Sal y entra con el email al que llegó.",
   not_allowed: "Tu cuenta no puede hacer esto ahora mismo.",
   consentimiento: "Para seguir, marca la casilla de consentimiento.",
   email: "Escribe un email válido.",
