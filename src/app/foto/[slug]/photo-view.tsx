@@ -69,23 +69,30 @@ export function PhotoView({
   const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
   // «Sé quién es» open on this tag.
   const [naming, setNaming] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(
-    null,
-  );
+  // Feedback is shown next to where it happened: a tag row, or under the photo.
+  const [notice, setNotice] = useState<{
+    text: string;
+    error: boolean;
+    tagId?: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  function run(action: () => Promise<ActionResult>, after: () => void) {
+  function run(
+    action: () => Promise<ActionResult>,
+    after: () => void,
+    tagId?: string,
+  ) {
     startTransition(async () => {
       const result = await action();
       if (result.ok) {
         after();
         setNotice(
-          result.message ? { text: result.message, error: false } : null,
+          result.message ? { text: result.message, error: false, tagId } : null,
         );
         router.refresh();
       } else {
-        setNotice({ text: result.error, error: true });
+        setNotice({ text: result.error, error: true, tagId });
       }
     });
   }
@@ -226,14 +233,7 @@ export function PhotoView({
               </button>
             </p>
           ))}
-        {notice && (
-          <p
-            role={notice.error ? "alert" : "status"}
-            className={`rounded-lg px-3 py-2 text-sm ${notice.error ? "border border-accent" : "bg-surface-2"}`}
-          >
-            {notice.text}
-          </p>
-        )}
+        {notice && !notice.tagId && <Notice notice={notice} />}
         {tags.length > 0 && !tagging && (
           <figcaption className="text-[13px] text-muted">
             Toca un número para ver quién es.
@@ -310,7 +310,10 @@ export function PhotoView({
                     {viewer && !tag.person && naming !== tag.id && (
                       <button
                         type="button"
-                        onClick={() => setNaming(tag.id)}
+                        onClick={() => {
+                          setNaming(tag.id);
+                          setNotice(null);
+                        }}
                         className="inline-flex h-9 flex-none items-center rounded-full bg-accent px-3.5 text-[13px] font-semibold text-on-accent"
                       >
                         Sé quién es
@@ -362,6 +365,7 @@ export function PhotoView({
                               () =>
                                 suggestName({ tagId: tag.id, photoId, person }),
                               () => setNaming(null),
+                              tag.id,
                             )
                           }
                           onCancel={() => setNaming(null)}
@@ -371,6 +375,11 @@ export function PhotoView({
                               : `Proponer «${name}»`
                           }
                         />
+                      </div>
+                    )}
+                    {notice?.tagId === tag.id && (
+                      <div className="mb-2 w-full">
+                        <Notice notice={notice} />
                       </div>
                     )}
                   </li>
@@ -463,5 +472,16 @@ function ChevronIcon() {
     >
       <path d="M9 6l6 6-6 6" />
     </svg>
+  );
+}
+
+function Notice({ notice }: { notice: { text: string; error: boolean } }) {
+  return (
+    <p
+      role={notice.error ? "alert" : "status"}
+      className={`rounded-lg px-3 py-2 text-sm ${notice.error ? "border border-accent" : "bg-surface-2"}`}
+    >
+      {notice.text}
+    </p>
   );
 }

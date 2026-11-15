@@ -27,9 +27,7 @@ export async function loadPersonOptions(
       detail: [
         `${photos.length} ${photos.length === 1 ? "foto" : "fotos"}`,
         teams.slice(0, 2).join(", "),
-        years.length
-          ? `${Math.min(...years)}–${String(Math.max(...years)).slice(-2)}`
-          : "",
+        yearRange(years),
       ]
         .filter(Boolean)
         .join(" · "),
@@ -79,4 +77,12 @@ export async function nextLabelNumber(
     .limit(1)
     .maybeSingle();
   return (data?.label_number ?? 0) + 1;
+}
+
+// «1978», or «1978–84» across several seasons.
+function yearRange(years: number[]): string {
+  if (years.length === 0) return "";
+  const from = Math.min(...years);
+  const to = Math.max(...years);
+  return from === to ? String(from) : `${from}–${String(to).slice(-2)}`;
 }
