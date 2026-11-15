@@ -52,17 +52,9 @@ export async function putOriginal(
   body: Buffer,
   contentType: string,
 ): Promise<void> {
-  const response = await client().fetch(
-    objectUrl(env("R2_ORIGINALS_BUCKET"), key),
-    {
-      method: "PUT",
-      body: new Uint8Array(body),
-      headers: { "content-type": contentType },
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`Could not write original ${key}: ${response.status}`);
-  }
+  await putObject(env("R2_ORIGINALS_BUCKET"), key, body, {
+    "content-type": contentType,
+  });
 }
 
 export async function getOriginal(key: string): Promise<Buffer> {
@@ -80,18 +72,33 @@ export async function putPublic(
   body: Buffer,
   contentType: string,
 ): Promise<void> {
-  const response = await client().fetch(
-    objectUrl(env("R2_PUBLIC_BUCKET"), key),
-    {
-      method: "PUT",
-      body: new Uint8Array(body),
-      headers: {
-        "content-type": contentType,
-        // Derivatives never change: a new upload gets a new key.
-        "cache-control": "public, max-age=31536000, immutable",
-      },
-    },
-  );
+  await putObject(env("R2_PUBLIC_BUCKET"), key, body, {
+    "content-type": contentType,
+    // Derivatives never change: a new upload gets a new key.
+    "cache-control": "public, max-age=31536000, immutable",
+  });
+}
+
+// Sign with aws4fetch but send the body ourselves as bytes. Sending the signed Request turns
+// the body into a stream, which some runtimes (Vercel) send chunked, without Content-Length;
+// R2 rejects that with 411 Length Required.
+async function putObject(
+  bucket: string,
+  key: string,
+  body: Buffer,
+  headers: Record<string, string>,
+): Promise<void> {
+  const bytes = new Uint8Array(body);
+  const signed = await client().sign(objectUrl(bucket, key).toString(), {
+    method: "PUT",
+    body: bytes,
+    headers,
+  });
+  const response = await fetch(signed.url, {
+    method: "PUT",
+    headers: signed.headers,
+    body: bytes,
+  });
   if (!response.ok) {
     throw new Error(`Could not write ${key}: ${response.status}`);
   }
