@@ -9,7 +9,11 @@ export const metadata: Metadata = {
 };
 
 // SPEC §11. Plain content: no data loading.
+// The controller's real name is not in the repo (it is public): it comes from the environment.
+const CONTACT = "hola@elbaloncestodeayer.com";
+
 export default function PrivacyPage() {
+  const controller = process.env.PRIVACY_CONTROLLER_NAME;
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 pt-8 sm:px-6">
       <div className="flex flex-col gap-2">
@@ -22,6 +26,21 @@ export default function PrivacyPage() {
           nadie.
         </p>
       </div>
+
+      <Section title="Quién está detrás">
+        <p>
+          {controller ? (
+            <>
+              El responsable del archivo es <strong>{controller}</strong>.
+            </>
+          ) : (
+            "El archivo lo llevan sus administradores."
+          )}{" "}
+          Para cualquier cosa sobre tus datos, escríbenos a{" "}
+          <A href={`mailto:${CONTACT}`}>{CONTACT}</A>.
+        </p>
+        <p>Para tener cuenta hay que tener al menos 14 años.</p>
+      </Section>
 
       <Section title="Qué guardamos">
         <p>
@@ -93,6 +112,12 @@ export default function PrivacyPage() {
             retire esta foto». Lo revisamos con prioridad.
           </li>
           <li>
+            <strong>Una copia de tus datos:</strong> pídenosla en{" "}
+            <A href={`mailto:${CONTACT}`}>{CONTACT}</A> y te la mandamos en
+            menos de un mes: tu cuenta, lo que has aportado y las fotos en las
+            que sales.
+          </li>
+          <li>
             <strong>Tu cuenta:</strong> en <A href="/cuenta">Mi cuenta</A>,
             «Borrar mi cuenta». Se borran tus recuerdos y tus fotos sin
             publicar, y tu persona queda libre. Las etiquetas que pusiste se
@@ -100,11 +125,8 @@ export default function PrivacyPage() {
           </li>
         </ul>
         <p>
-          Para cualquier otra cosa, escríbenos por{" "}
-          <A href="https://www.instagram.com/explore/tags/elbaloncestodeayer/">
-            Instagram
-          </A>
-          .
+          Para cualquier otra cosa, escríbenos a{" "}
+          <A href={`mailto:${CONTACT}`}>{CONTACT}</A>.
         </p>
       </Section>
 
@@ -113,6 +135,12 @@ export default function PrivacyPage() {
           Las fotos son de sus autores o de quien las aporta, no del archivo. El
           código de la web es libre (licencia MIT), pero esa licencia no cubre
           las fotos.
+        </p>
+        <p>
+          <strong>Menores:</strong> el archivo es de fotos de antes. No
+          publicamos fotos en las que salgan personas que hoy son menores de
+          edad, salvo con permiso de sus padres, y nunca las etiquetamos con su
+          nombre. Si ves alguna, pide que se retire y la quitamos.
         </p>
       </Section>
     </main>

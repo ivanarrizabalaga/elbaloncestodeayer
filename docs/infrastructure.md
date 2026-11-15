@@ -25,7 +25,7 @@ No secrets in this file or anywhere in the repo. They live in the providers, in 
 | `resend._domainkey.mail` | TXT | DKIM key | Resend signature |
 | `send.mail`, `rsend.mail` | CNAME | Resend | Resend sending (SPF / bounces) |
 | `img` | R2 custom domain (proxied, orange cloud) | Public derivatives bucket | Images, TLS 1.2 minimum |
-| `@` | MX ×5 + TXT (SPF) | Namecheap email forwarding | Incoming mail, from the registrar; may be replaced by Cloudflare Email Routing |
+| `@` | MX ×3 + TXT (SPF) + `cf2024-1._domainkey` TXT | Cloudflare Email Routing | Incoming mail: `hola@` is forwarded to the archive's Gmail |
 
 Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue certificates.
 
