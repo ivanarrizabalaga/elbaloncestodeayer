@@ -71,6 +71,7 @@ export default async function ProposePage({
           start={startProposal}
           finish={finishProposal}
           doneLabel="Enviada: la revisaremos pronto"
+          similarLabel="Parece que ya está en el archivo (si es la misma, puedes retirarla abajo):"
           comment={{
             label: "¿Qué sabes de estas fotos? (opcional)",
             placeholder:

@@ -170,6 +170,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 
 - Stored in **Cloudflare R2**, in two buckets: a **public** one for derivatives and a **private** one for originals. (R2 public access is per bucket, not per prefix.)
 - On upload the server generates (with `sharp`) two derivatives: **thumbnail** (~480 px) and **large** (~1600 px), as WebP.
+- It also computes the photo's `image_hash`. If it looks like a photo already in the archive, the uploader says so under the file: admins see every lookalike, linking to its admin page; a user proposing a photo only sees published ones (and their own proposals, unlinked), never drafts. It is only a notice: the upload goes ahead.
 - Derivatives are served publicly from the public bucket through a custom domain; the **original** is kept in the private bucket.
 - Direct browser upload to R2 with a presigned URL; processing happens afterwards on the server.
 - No paid on-the-fly transformations.

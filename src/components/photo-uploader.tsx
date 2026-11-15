@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,7 +9,11 @@ type Item = {
   name: string;
   status: "pending" | "uploading" | "processing" | "done" | "error";
   error?: string;
+  // Photos that look the same (by image_hash), returned by `finish`.
+  similar?: Similar[];
 };
+
+type Similar = { href: string | null; label: string };
 
 const STATUS_LABEL: Record<Item["status"], string> = {
   pending: "En cola",
@@ -20,7 +25,8 @@ const STATUS_LABEL: Record<Item["status"], string> = {
 
 type Started =
   { ok: true; id: string; uploadUrl: string } | { ok: false; error: string };
-type Finished = { ok: true } | { ok: false; error: string };
+type Finished =
+  { ok: true; similar?: Similar[] } | { ok: false; error: string };
 
 // Uploads one file at a time: sign → PUT straight to R2 → process on the server.
 // Admins upload drafts; users propose photos, with a comment and a rights confirmation.
@@ -30,6 +36,7 @@ export function PhotoUploader({
   doneLabel,
   comment,
   confirm,
+  similarLabel = "Parecida a:",
 }: {
   start: (file: { type: string; size: number }) => Promise<Started>;
   finish: (id: string, comment: string) => Promise<Finished>;
@@ -37,6 +44,8 @@ export function PhotoUploader({
   // Optional fields shown above the drop zone.
   comment?: { label: string; placeholder: string };
   confirm?: string;
+  // Heading of the «looks like a photo already there» notice under a finished file.
+  similarLabel?: string;
 }) {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
@@ -90,7 +99,7 @@ export function PhotoUploader({
         update(
           item.key,
           finished.ok
-            ? { status: "done" }
+            ? { status: "done", similar: finished.similar }
             : { status: "error", error: finished.error },
         );
       } catch {
@@ -191,6 +200,31 @@ export function PhotoUploader({
                     ? doneLabel
                     : STATUS_LABEL[item.status])}
               </span>
+              {item.similar && item.similar.length > 0 && (
+                <div className="flex w-full flex-col items-start gap-1 pt-1 text-xs">
+                  <span className="font-semibold text-accent">
+                    {similarLabel}
+                  </span>
+                  {item.similar.map((s, i) =>
+                    s.href ? (
+                      // New tab: leaving the page would stop the files still in the queue.
+                      <Link
+                        key={i}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex min-h-11 items-center break-all text-fg underline underline-offset-4"
+                      >
+                        {s.label}
+                      </Link>
+                    ) : (
+                      <span key={i} className="text-muted">
+                        {s.label}
+                      </span>
+                    ),
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>

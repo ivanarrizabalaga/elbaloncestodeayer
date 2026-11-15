@@ -1,5 +1,5 @@
 import "server-only";
-import { makeDerivatives, photoKeys } from "@/lib/derivatives";
+import { imageHash, makeDerivatives, photoKeys } from "@/lib/derivatives";
 import {
   deleteOriginal,
   deletePublic,
@@ -11,8 +11,9 @@ import {
 // Upload flow shared by admins (drafts) and users (proposals), SPEC §6:
 // 1. signUpload: the server signs a URL for the original in the private bucket.
 // 2. The browser PUTs the file there directly (no size limit from Vercel functions).
-// 3. processUpload: the server reads it back and writes the WebP derivatives to the public
-//    bucket; the caller then creates the photo row.
+// 3. processUpload: the server reads it back, writes the WebP derivatives to the public
+//    bucket and computes its image_hash; the caller then creates the photo row and can warn
+//    about photos that look the same (similarForAdmin / similarForUser in lookalikes.ts).
 
 export const ACCEPTED_TYPES = [
   "image/jpeg",
@@ -52,9 +53,10 @@ export async function processUpload(id: string) {
   const keys = photoKeys(id);
   const original = await getOriginal(keys.original);
   const { large, thumb, width, height } = await makeDerivatives(original);
+  const hash = await imageHash(original);
   await putPublic(keys.large, large, "image/webp");
   await putPublic(keys.thumb, thumb, "image/webp");
-  return { storageKey: keys.storageKey, width, height };
+  return { storageKey: keys.storageKey, width, height, imageHash: hash };
 }
 
 // Removes every file of a photo (rejected or withdrawn-before-publishing proposals,

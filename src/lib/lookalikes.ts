@@ -1,4 +1,5 @@
 import "server-only";
+import { photoLabel } from "@/lib/photos";
 import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -47,4 +48,45 @@ export async function loadLookalikes(
     ]);
   }
   return result;
+}
+
+// A photo that looks like one just uploaded, for the notice in the uploader. href is null
+// when there is nothing the uploader may open (their own pending proposal).
+export type Similar = { href: string | null; label: string };
+
+// For the notice after an admin upload: every lookalike, linking to its admin page.
+export async function similarForAdmin(
+  supabase: Client,
+  photoId: string,
+): Promise<Similar[]> {
+  const found = await loadLookalikes(supabase, [photoId]);
+  return (found.get(photoId) ?? []).map((l) => ({
+    href: `/admin/fotos/${l.id}`,
+    label: l.label,
+  }));
+}
+
+// For the notice after a user proposes a photo. As the user, RLS only shows published
+// photos and their own proposals, so no draft is ever revealed. Published ones link to
+// their public page; their own proposals are named but not linked.
+export async function similarForUser(
+  supabase: Client,
+  photoId: string,
+): Promise<Similar[]> {
+  const { data: pairs } = await supabase.rpc("photo_lookalikes", {
+    photo_ids: [photoId],
+  });
+  if (!pairs?.length) return [];
+  const { data: others } = await supabase
+    .from("photos")
+    .select("id, slug, status, team, season_label")
+    .in(
+      "id",
+      pairs.map((p) => p.other_id),
+    );
+  return (others ?? []).map((o) =>
+    o.status === "published"
+      ? { href: `/foto/${o.slug}`, label: photoLabel(o) }
+      : { href: null, label: "Una foto que ya propusiste" },
+  );
 }
