@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { openGraph, SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
+import { siteOrigin } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -15,14 +17,20 @@ const barlowCondensed = Barlow_Condensed({
   weight: ["600", "700"],
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "El baloncesto de ayer",
-    template: "%s · El baloncesto de ayer",
-  },
-  description:
-    "Archivo fotográfico colaborativo del baloncesto de antes. Reconócete, etiqueta a tus compañeros e invítales.",
-};
+// Defaults for every page. metadataBase makes image and canonical URLs absolute, on whatever
+// host serves the request (production, previews, localhost).
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(await siteOrigin()),
+    title: {
+      default: SITE_NAME,
+      template: `%s · ${SITE_NAME}`,
+    },
+    description: SITE_DESCRIPTION,
+    openGraph: openGraph({}),
+    twitter: { card: "summary_large_image" },
+  };
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

@@ -5,6 +5,7 @@ import { cache } from "react";
 import { PhotoGrid } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { decadeLabel, photoLabel, photoSrc, photoTitle } from "@/lib/photos";
+import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
 import { loadPersonOptions } from "@/lib/people";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
@@ -30,7 +31,34 @@ export async function generateMetadata({
   const { slug } = await params;
   const photo = await getPhoto(slug);
   if (!photo) return {};
-  return { title: photoLabel(photo), description: photo.story ?? undefined };
+  const title = photoLabel(photo);
+  // What WhatsApp shows under the image: the story, or an invitation to look for yourself.
+  const description = photo.story
+    ? excerpt(photo.story)
+    : `¿Sales en esta foto? ${title}. Entra, reconócete y etiqueta a tus compañeros.`;
+  const published = photo.status === "published";
+  return {
+    title,
+    description,
+    alternates: { canonical: `/foto/${photo.slug}` },
+    robots: published ? undefined : { index: false },
+    openGraph: openGraph({
+      type: "article",
+      title,
+      description,
+      url: `/foto/${photo.slug}`,
+      images: published
+        ? [previewImage(photo.slug, `Foto: ${title}`)]
+        : undefined,
+    }),
+  };
+}
+
+// First ~160 characters, cut at a word.
+function excerpt(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (flat.length <= 160) return flat;
+  return `${flat.slice(0, 157).replace(/\s+\S*$/, "")}…`;
 }
 
 export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
