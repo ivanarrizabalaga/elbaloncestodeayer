@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ConfirmButton } from "@/components/confirm-button";
 import { loadPersonOptions } from "@/lib/people";
 import { photoSrc } from "@/lib/photos";
 import { payloadText, withdrawnByContributor } from "@/lib/review";
@@ -233,6 +234,15 @@ export default async function EditPhotoPage({
             >
               {published ? "Guardar cambios" : "Guardar borrador"}
             </button>
+            {published && (
+              <ConfirmButton
+                label="Retirar foto"
+                title="¿Retirar esta foto?"
+                body="Dejará de verse en la web al momento. Las etiquetas, los recuerdos y el original se guardan, así que podrás volver a publicarla. Si había peticiones de retirada pendientes, se dan por resueltas."
+                confirmLabel="Sí, retirarla"
+                action={withdrawPhoto}
+              />
+            )}
             {publishable && (
               <button
                 type="submit"
@@ -254,31 +264,6 @@ export default async function EditPhotoPage({
           )}
         </form>
       </div>
-
-      {published && (
-        <details className="self-start text-sm">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center text-muted">
-            Retirar esta foto
-          </summary>
-          <form
-            action={withdrawPhoto}
-            className="flex max-w-md flex-col items-start gap-2"
-          >
-            <input type="hidden" name="id" value={photo.id} />
-            <p className="text-muted">
-              Dejará de verse en la web al momento. Las etiquetas, los recuerdos
-              y el original se guardan, así que podrás volver a publicarla. Si
-              había peticiones de retirada pendientes, se dan por resueltas.
-            </p>
-            <button
-              type="submit"
-              className="inline-flex h-11 items-center rounded-full border border-accent px-4 font-semibold text-accent"
-            >
-              Sí, retirarla
-            </button>
-          </form>
-        </details>
-      )}
     </main>
   );
 }
