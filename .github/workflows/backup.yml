@@ -29,7 +29,15 @@ jobs:
       - name: Dump the production database
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: sh scripts/backup.sh dump
+        run: |
+          # GitHub only masks a secret when it appears whole. Mask the password on its own too,
+          # in case a tool prints the URL in another form (this repo's logs are public).
+          password=$(python3 -c 'import os, urllib.parse; u = urllib.parse.urlsplit(os.environ["SUPABASE_DB_URL"]); print(u.password or "")' 2>/dev/null || true)
+          if [ -n "$password" ]; then
+            echo "::add-mask::$password"
+            echo "::add-mask::$(python3 -c 'import sys, urllib.parse; print(urllib.parse.unquote(sys.argv[1]))' "$password")"
+          fi
+          sh scripts/backup.sh dump
 
       - name: Upload to R2
         env:
