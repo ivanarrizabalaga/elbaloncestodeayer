@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(6);
+select plan(7);
 
 truncate public.photos, public.people, auth.users cascade;
 
@@ -57,6 +57,19 @@ select is_empty($$ select 1 from public.draft_folders $$, 'a user sees no draft 
 select is_empty(
   $$ select 1 from public.photo_lookalikes(array['10000000-0000-0000-0000-000000000001']::uuid[]) $$,
   'a user does not learn about drafts through lookalikes'
+);
+
+-- A user's proposal of the same picture (close to «publicada» and «borrador-1»).
+reset role;
+insert into public.photos (id, slug, status, proposed_by, image_hash) values
+  ('10000000-0000-0000-0000-000000000005', 'propuesta', 'proposed',
+   '00000000-0000-0000-0000-00000000000b', 'ffff000000000007');
+select pg_temp.act_as('00000000-0000-0000-0000-00000000000b');
+
+select results_eq(
+  $$ select other_slug from public.photo_lookalikes(array['10000000-0000-0000-0000-000000000005']::uuid[]) $$,
+  $$ values ('publicada'::text) $$,
+  'a user proposing a photo sees the published lookalike, never the draft one'
 );
 
 select * from finish();

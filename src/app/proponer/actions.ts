@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { similarForUser, type Similar } from "@/lib/lookalikes";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import {
   deletePhotoFiles,
@@ -17,7 +18,8 @@ import {
 // Enough for anyone emptying a shoebox; stops a runaway script.
 const DAILY_LIMIT = 30;
 
-type Result = { ok: true } | { ok: false; error: string };
+type ProposalResult =
+  { ok: true; similar: Similar[] } | { ok: false; error: string };
 
 async function canPropose(): Promise<
   { ok: true; userId: string } | { ok: false; error: string }
@@ -54,14 +56,14 @@ export async function startProposal(file: {
 export async function finishProposal(
   id: string,
   comment: string,
-): Promise<Result> {
+): Promise<ProposalResult> {
   const allowed = await canPropose();
   if (!allowed.ok) return allowed;
   if (!UUID.test(id)) return { ok: false, error: "Subida no válida." };
 
   const supabase = await createClient();
   try {
-    const { storageKey, width, height } = await processUpload(id);
+    const { storageKey, width, height, imageHash } = await processUpload(id);
     const { error } = await supabase.from("photos").insert({
       id,
       // Temporary: the real slug is set when an admin publishes it.
@@ -71,6 +73,7 @@ export async function finishProposal(
       storage_key: storageKey,
       width,
       height,
+      image_hash: imageHash,
     });
     if (error) throw new Error(error.message);
   } catch (error) {
@@ -99,7 +102,7 @@ export async function finishProposal(
   }
 
   revalidatePath("/proponer");
-  return { ok: true };
+  return { ok: true, similar: await similarForUser(supabase, id) };
 }
 
 // «Retirar mi foto»: not published yet → deleted with its files; published → withdrawn

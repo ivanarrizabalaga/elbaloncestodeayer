@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { similarForAdmin, type Similar } from "@/lib/lookalikes";
 import { firstPublishFields } from "@/lib/publish";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 import {
@@ -23,16 +24,16 @@ export async function startUpload(file: {
 }
 
 export type FinishUploadResult =
-  { ok: true; id: string } | { ok: false; error: string };
+  { ok: true; id: string; similar: Similar[] } | { ok: false; error: string };
 
 export async function finishUpload(id: string): Promise<FinishUploadResult> {
   await requireAdmin();
   if (!UUID.test(id)) return { ok: false, error: "Subida no válida." };
 
+  // As the admin, through RLS (admins may insert photos).
+  const supabase = await createClient();
   try {
-    const { storageKey, width, height } = await processUpload(id);
-    // As the admin, through RLS (admins may insert photos).
-    const supabase = await createClient();
+    const { storageKey, width, height, imageHash } = await processUpload(id);
     const { error } = await supabase.from("photos").insert({
       id,
       // Temporary: the real slug is set when the photo is published.
@@ -41,6 +42,7 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
       storage_key: storageKey,
       width,
       height,
+      image_hash: imageHash,
     });
     if (error) throw new Error(error.message);
   } catch (error) {
@@ -53,7 +55,7 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
   }
 
   revalidatePath("/admin/subir");
-  return { ok: true, id };
+  return { ok: true, id, similar: await similarForAdmin(supabase, id) };
 }
 
 // Bulk actions of the table view. The form sends the selected ids and the page to return to.
