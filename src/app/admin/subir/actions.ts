@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { firstPublishFields } from "@/lib/publish";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 import {
   deletePhotoFiles,
@@ -52,4 +54,111 @@ export async function finishUpload(id: string): Promise<FinishUploadResult> {
 
   revalidatePath("/admin/subir");
   return { ok: true, id };
+}
+
+// Bulk actions of the table view. The form sends the selected ids and the page to return to.
+
+function selection(formData: FormData) {
+  const ids = formData
+    .getAll("id")
+    .map(String)
+    .filter((id) => UUID.test(id));
+  const back = String(formData.get("back") ?? "");
+  // Only back to this page, keeping its filters (never an outside URL).
+  const url = new URL(
+    back.startsWith("/admin/subir") ? back : "/admin/subir",
+    "http://x",
+  );
+  url.searchParams.delete("ok");
+  url.searchParams.delete("n");
+  // Back to the first page: the handled drafts leave the list, so later pages shift.
+  url.searchParams.delete("pagina");
+  return { ids, url };
+}
+
+function done(url: URL, ok: string, n: number): never {
+  url.searchParams.set("ok", ok);
+  url.searchParams.set("n", String(n));
+  revalidatePath("/admin/subir");
+  redirect(`${url.pathname}${url.search}`);
+}
+
+// Publishes the selected drafts as they are, one by one (each gets its own slug).
+export async function publishDrafts(formData: FormData) {
+  const admin = await requireAdmin();
+  const { ids, url } = selection(formData);
+  const supabase = await createClient();
+  const { data: drafts } = await supabase
+    .from("photos")
+    .select("id, team, season_label")
+    .eq("status", "draft")
+    .in("id", ids);
+
+  let published = 0;
+  for (const draft of drafts ?? []) {
+    const fields = await firstPublishFields(supabase, draft, admin.id);
+    const { error } = await supabase
+      .from("photos")
+      .update(fields)
+      .eq("id", draft.id)
+      .eq("status", "draft");
+    if (error) console.error("publishDrafts failed", draft.id, error);
+    else published++;
+  }
+  revalidatePath("/");
+  done(url, "publicadas", published);
+}
+
+// Publishes every draft of an imported folder (source_file «<folder>/…»), not only the
+// ones on the current page. Goes in batches: published drafts leave the query.
+export async function publishFolder(formData: FormData) {
+  const admin = await requireAdmin();
+  const { url } = selection(formData);
+  const folder = String(formData.get("carpeta") ?? "");
+  if (!folder) done(url, "publicadas", 0);
+  const supabase = await createClient();
+  const pattern = `${folder.replace(/[\\%_]/g, "\\$&")}/%`;
+
+  let published = 0;
+  for (;;) {
+    const { data: drafts } = await supabase
+      .from("photos")
+      .select("id, team, season_label")
+      .eq("status", "draft")
+      .like("source_file", pattern)
+      .limit(100);
+    if (!drafts?.length) break;
+    let progress = 0;
+    for (const draft of drafts) {
+      const fields = await firstPublishFields(supabase, draft, admin.id);
+      const { error } = await supabase
+        .from("photos")
+        .update(fields)
+        .eq("id", draft.id)
+        .eq("status", "draft");
+      if (error) console.error("publishFolder failed", draft.id, error);
+      else progress++;
+    }
+    published += progress;
+    if (progress === 0) break; // every update failed: stop instead of looping forever
+  }
+  url.searchParams.delete("carpeta");
+  revalidatePath("/");
+  done(url, "publicadas", published);
+}
+
+// Discards the selected drafts: they become «rejected» and leave the list. Their files are
+// kept, so a mistake can still be undone in the database.
+export async function discardDrafts(formData: FormData) {
+  await requireAdmin();
+  const { ids, url } = selection(formData);
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("photos")
+    .update({ status: "rejected" })
+    .eq("status", "draft")
+    .in("id", ids)
+    .select("id");
+  if (error) console.error("discardDrafts failed", error);
+  done(url, "descartadas", data?.length ?? 0);
 }

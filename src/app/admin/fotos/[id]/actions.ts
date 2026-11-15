@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { parseSeason } from "@/lib/photos";
 import { createPerson, nextLabelNumber } from "@/lib/people";
-import { slugify, uniqueSlug } from "@/lib/slug";
+import { firstPublishFields } from "@/lib/publish";
 import { withdrawnByContributor } from "@/lib/review";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 
@@ -114,22 +114,11 @@ export async function savePhoto(formData: FormData) {
   if (republishing) {
     publishFields = { status: "published" as const };
   } else if (publishing) {
-    const base = slugify(
-      [team, seasonLabel].filter(Boolean).join(" ") || "foto",
+    publishFields = await firstPublishFields(
+      supabase,
+      { team, season_label: seasonLabel },
+      admin.id,
     );
-    const { data: similar } = await supabase
-      .from("photos")
-      .select("slug")
-      .like("slug", `${base}%`);
-    publishFields = {
-      status: "published" as const,
-      slug: uniqueSlug(
-        base,
-        (similar ?? []).map((p) => p.slug),
-      ),
-      published_at: new Date().toISOString(),
-      published_by: admin.id,
-    };
   }
 
   const { error } = await supabase
