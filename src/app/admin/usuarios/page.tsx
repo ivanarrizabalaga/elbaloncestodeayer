@@ -159,7 +159,7 @@ export default async function UsersPage({
                 <Td>—</Td>
                 <Td>—</Td>
                 <Td>
-                  <form className="flex flex-wrap gap-2">
+                  <form className="flex items-center gap-2 whitespace-nowrap">
                     <input type="hidden" name="id" value={invitation.id} />
                     <button
                       type="submit"
@@ -238,7 +238,7 @@ export default async function UsersPage({
                   <Td>{u.invited_by_name ?? "—"}</Td>
                   <Td>{contributions(u)}</Td>
                   <Td>
-                    <form className="flex flex-wrap items-center gap-2">
+                    <form className="flex items-center gap-2 whitespace-nowrap">
                       <input type="hidden" name="id" value={u.id} />
                       <input type="hidden" name="lista" value="usuarios" />
                       {u.blocked_at ? (
@@ -318,7 +318,7 @@ function Tab({
 function Table({ head, children }: { head: string[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto rounded-lg bg-surface">
-      <table className="w-full min-w-[720px] text-left text-sm">
+      <table className="w-full min-w-[860px] text-left text-sm">
         <thead className="text-xs text-muted">
           <tr>
             {head.map((h, i) => (
