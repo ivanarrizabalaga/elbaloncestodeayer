@@ -3,9 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadPersonOptions } from "@/lib/people";
 import { photoSrc } from "@/lib/photos";
-import { payloadText } from "@/lib/review";
+import { payloadText, withdrawnByContributor } from "@/lib/review";
 import { createClient } from "@/lib/supabase/server";
-import { savePhoto } from "./actions";
+import { savePhoto, withdrawPhoto } from "./actions";
 import { TagEditor } from "./tag-editor";
 
 export const metadata: Metadata = { title: "Editar foto" };
@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Editar foto" };
 const MESSAGES: Record<string, string> = {
   guardada: "Cambios guardados.",
   publicada: "Foto publicada.",
+  retirada: "Foto retirada: ya no se ve en la web. Puedes volver a publicarla.",
 };
 const STATUS_LABEL: Record<string, string> = {
   draft: "Borrador",
@@ -68,7 +69,13 @@ export default async function EditPhotoPage({
 
   const published = photo.status === "published";
   // Drafts and user proposals can be published; withdrawn photos stay down (SPEC §5).
-  const publishable = photo.status === "draft" || photo.status === "proposed";
+  const ownWithdrawal =
+    photo.status === "withdrawn" &&
+    (await withdrawnByContributor(supabase, photo.id));
+  const publishable =
+    photo.status === "draft" ||
+    photo.status === "proposed" ||
+    (photo.status === "withdrawn" && !ownWithdrawal);
   const proposal = photo.proposed_by
     ? await loadProposal(supabase, photo.id, photo.proposed_by)
     : null;
@@ -233,11 +240,13 @@ export default async function EditPhotoPage({
                 value="publish"
                 className="inline-flex h-12 items-center rounded-full bg-accent px-6 font-semibold text-on-accent"
               >
-                Publicar
+                {photo.status === "withdrawn"
+                  ? "Volver a publicar"
+                  : "Publicar"}
               </button>
             )}
           </div>
-          {publishable && (
+          {publishable && photo.status !== "withdrawn" && (
             <p className="text-xs text-muted">
               Al publicar, la foto aparece en el archivo y su dirección pasa a
               ser fija (equipo y temporada).
@@ -245,6 +254,31 @@ export default async function EditPhotoPage({
           )}
         </form>
       </div>
+
+      {published && (
+        <details className="self-start text-sm">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-muted">
+            Retirar esta foto
+          </summary>
+          <form
+            action={withdrawPhoto}
+            className="flex max-w-md flex-col items-start gap-2"
+          >
+            <input type="hidden" name="id" value={photo.id} />
+            <p className="text-muted">
+              Dejará de verse en la web al momento. Las etiquetas, los recuerdos
+              y el original se guardan, así que podrás volver a publicarla. Si
+              había peticiones de retirada pendientes, se dan por resueltas.
+            </p>
+            <button
+              type="submit"
+              className="inline-flex h-11 items-center rounded-full border border-accent px-4 font-semibold text-accent"
+            >
+              Sí, retirarla
+            </button>
+          </form>
+        </details>
+      )}
     </main>
   );
 }
