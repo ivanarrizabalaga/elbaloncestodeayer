@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { signOut } from "@/app/entrar/actions";
 import { countOpenReviewItems } from "@/lib/review";
+import { initials } from "@/lib/site";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 
 export async function SiteHeader() {
@@ -43,17 +43,21 @@ export async function SiteHeader() {
                 Proponer foto
               </Link>
             )}
-            <span className="hidden text-muted sm:inline">
-              {user.displayName ?? user.email}
-            </span>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="min-h-11 rounded-full border border-line-strong px-4 font-semibold"
+            <Link
+              href="/cuenta"
+              aria-label="Mi cuenta"
+              className="flex min-h-11 items-center gap-2 rounded-full text-muted hover:text-fg"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-9 items-center justify-center rounded-full bg-[#2e2e2e] text-[13px] font-semibold text-fg"
               >
-                Salir
-              </button>
-            </form>
+                {initials(user.displayName ?? user.email ?? "?")}
+              </span>
+              <span className="hidden sm:inline">
+                {user.displayName ?? "Mi cuenta"}
+              </span>
+            </Link>
           </div>
         ) : (
           <Link

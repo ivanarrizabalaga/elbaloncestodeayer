@@ -669,6 +669,10 @@ export type Database = {
         }[];
       };
       claim_person: { Args: { p_person_id: string }; Returns: string };
+      delete_own_account: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
       dispute_invitation: {
         Args: { p_suggested_name: string; p_token: string };
         Returns: undefined;
