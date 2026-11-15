@@ -25,7 +25,8 @@ function readFilters(params: SearchParams): Filters & { page: number } {
 }
 
 export default async function Home({ searchParams }: PageProps<"/">) {
-  const filters = readFilters(await searchParams);
+  const params = await searchParams;
+  const filters = readFilters(params);
   const filtering =
     filters.decade !== null ||
     filters.team !== "" ||
@@ -161,6 +162,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 pt-8 sm:px-6">
+      {params.cuenta === "borrada" && (
+        <p role="status" className="rounded-lg bg-surface-2 px-4 py-3">
+          Tu cuenta se ha borrado. Gracias por haber formado parte del archivo.
+        </p>
+      )}
       {featured?.storage_key && (
         <Featured
           photo={{ ...featured, storage_key: featured.storage_key }}

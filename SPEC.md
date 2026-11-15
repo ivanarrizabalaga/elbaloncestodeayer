@@ -65,6 +65,10 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Photo page | `/foto/[slug]` | `Foto.dc.html`, `FotoMovil.dc.html` | Photo with numbered markers on faces, «En la foto» list (own profile / Invite / «Sé quién es»), details, story, memories, «Más de esta temporada», privacy links |
 | Person page | `/persona/[slug]` | `Persona.dc.html` | Name, face crop, «Sale con», photos by season, share, invite |
 | Invitation | `/invitacion/[token]` | `Invitacion.dc.html` | Arrives via link (WhatsApp): «¿Eres tú?» → email → magic link → signed in. Also «No soy yo» |
+| Propose photos | `/proponer` | _(no mockup)_ | Users upload photos for review; «Tus fotos» with status and «Retirar esta foto» |
+| Withdrawal request | `/foto/[slug]/retirar` | _(no mockup)_ | Reason and optional contact; the contributor withdraws directly instead |
+| My account | `/cuenta` | _(no mockup)_ | Change the display name, link to your person and photos, sign out, delete the account |
+| Privacy | `/privacidad` | _(no mockup)_ | What is stored, where, and how to change or delete it (§11) |
 
 ### Admin
 | Screen | Route | Mockup | What it does |
@@ -231,6 +235,6 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 Decisions deliberately postponed. Revisit them in the phase noted.
 
 - **Users creating people while tagging** (decided in phase 5.2, revisit if needed). Only admins create people; users tag existing people (published at once) or, for someone not in the archive, leave a «?» face with a name suggestion that goes to review. Revisit if the review queue becomes a bottleneck; the risk is duplicate people ("Pepe García" vs "Pepe Garcia").
-- **Account deletion / right to be forgotten** (phase 6). Today contributions survive account deletion without an author (`on delete set null`). Proposal to evaluate: delete the user's memories, release their claimed person, keep tags (they describe the photo, not the user). Document the outcome on the privacy page.
+- **Account deletion / right to be forgotten** (decided in phase 6). «Borrar mi cuenta» in `/cuenta` (`delete_own_account`): the account and profile are deleted, their memories are deleted, their person is released, tags they added stay without author, their unpublished photos are deleted with their files, and published photos stay without contributor (the page tells them to withdraw them first if they want them gone). The last active admin cannot delete their account. Documented on the privacy page.
 - **Spam on anonymous withdrawal requests** (phase 6, only if it happens). Start with nothing; if spam appears, add Cloudflare Turnstile (free, no tracking) to the form.
 - **Mentions in memories** (after phase 6). Typing `@` in a memory picks a person from the archive; it links to their page and, if that person has a claimed account, emails them («Pepe te ha mencionado en un recuerdo de esta foto») with a link back. The aim is to pull more people into telling each photo's story. Open points: only notify claimed accounts (never invent emails); a per-account opt-out and a daily cap so it never feels like spam; keep within the Resend free tier; an unclaimed person could get a «Invitar» suggestion instead of an email.
