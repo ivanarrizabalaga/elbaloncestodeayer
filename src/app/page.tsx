@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { FaceCrop } from "@/components/face-crop";
 import {
+  activeFilters,
   applyGalleryFilters,
+  filterOptions,
   galleryQuery,
   isFiltering,
   readGalleryFilters,
@@ -72,7 +74,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     await Promise.all([
       supabase
         .from("photos")
-        .select("id, team, venue, year_from")
+        .select("id, team, venue, competition, year_from")
         .eq("status", "published"),
       supabase
         .from("people")
@@ -91,16 +93,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   const published = index ?? [];
   const unnamed = unnamedTags ?? [];
-  const decades = [
-    ...new Set(
-      published.flatMap((p) =>
-        p.year_from ? [p.year_from - (p.year_from % 10)] : [],
-      ),
-    ),
-  ].sort();
-  const teams = distinct(published.map((p) => p.team));
-  const venues = distinct(published.map((p) => p.venue));
   const unnamedPhotoIds = [...new Set(unnamed.map((t) => t.photo.id))];
+  const { decades, teams, venues, matching } = filterOptions(
+    published,
+    filters,
+    new Set(unnamedPhotoIds),
+  );
 
   // The gallery itself. Same order as photoNeighbours (src/lib/gallery.ts).
   const { data: rows } = await applyGalleryFilters(
@@ -234,6 +232,37 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           teams={teams}
           venues={venues}
         />
+
+        {/* Active filters, each removable on its own. Filters can also arrive from a
+            link on a photo page (competition has no control in the bar at all). */}
+        {filtering && (
+          <div className="-mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted">
+              {matching} {matching === 1 ? "foto" : "fotos"}:
+            </span>
+            {activeFilters(filters).map((chip) => (
+              <Link
+                key={chip.label}
+                href={chip.href}
+                scroll={false}
+                aria-label={`Quitar filtro: ${chip.label}`}
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-surface-3 px-4 hover:bg-line"
+              >
+                {chip.label}
+                <span aria-hidden="true" className="text-muted">
+                  ✕
+                </span>
+              </Link>
+            ))}
+            <Link
+              href="/"
+              scroll={false}
+              className="inline-flex min-h-11 items-center px-2 font-medium text-accent"
+            >
+              Quitar filtros
+            </Link>
+          </div>
+        )}
 
         {photos.length === 0 ? (
           <p className="py-8 text-muted">
@@ -429,11 +458,5 @@ function Featured({
         </div>
       </div>
     </section>
-  );
-}
-
-function distinct(values: (string | null)[]): string[] {
-  return [...new Set(values.filter((v): v is string => Boolean(v)))].sort(
-    (a, b) => a.localeCompare(b, "es"),
   );
 }

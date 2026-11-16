@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PhotoGrid } from "@/components/photo-grid";
 import {
+  decadeOf,
+  galleryHref,
   galleryQuery,
   photoNeighbours,
   readGalleryFilters,
@@ -11,6 +13,7 @@ import {
 } from "@/lib/gallery";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import {
+  decadeLabel,
   PHOTO_STATUS_LABEL,
   photoLabel,
   photoSrc,
@@ -186,12 +189,33 @@ export default async function PhotoPage({
   const shareUrl = `${await siteOrigin()}/foto/${photo.slug}`;
   const shareText = `¿Sales en esta foto? ${photoLabel(photo)} — El baloncesto de ayer`;
 
-  const details = [
-    ["Lugar", photo.venue],
-    ["Competición", photo.competition],
-    ["Procedencia", photo.provenance],
-    ["Autor", photo.photographer],
-  ].filter((row): row is [string, string] => Boolean(row[1]));
+  // Team, decade, venue and competition link to the gallery filtered by that value
+  // (a fresh list, not the one the photo was opened from).
+  const decade = decadeOf(photo.year_from);
+  const details: { term: string; value: string | null; href?: string }[] = [
+    {
+      term: "Equipo",
+      value: photo.team,
+      href: galleryHref({ team: photo.team ?? "" }),
+    },
+    {
+      term: "Década",
+      value: decadeLabel(decade),
+      href: galleryHref({ decade }),
+    },
+    {
+      term: "Lugar",
+      value: photo.venue,
+      href: galleryHref({ venue: photo.venue ?? "" }),
+    },
+    {
+      term: "Competición",
+      value: photo.competition,
+      href: galleryHref({ competition: photo.competition ?? "" }),
+    },
+    { term: "Procedencia", value: photo.provenance },
+    { term: "Autor", value: photo.photographer },
+  ].filter((row) => Boolean(row.value));
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-6 sm:px-6">
@@ -258,10 +282,21 @@ export default async function PhotoPage({
         details={
           details.length > 0 || photo.instagram_url ? (
             <dl className="grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2.5 text-sm">
-              {details.map(([term, value]) => (
+              {details.map(({ term, value, href }) => (
                 <div key={term} className="contents">
                   <dt className="text-muted">{term}</dt>
-                  <dd>{value}</dd>
+                  <dd>
+                    {href ? (
+                      <Link
+                        href={href}
+                        className="underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                      >
+                        {value}
+                      </Link>
+                    ) : (
+                      value
+                    )}
+                  </dd>
                 </div>
               ))}
               {photo.instagram_url && (
