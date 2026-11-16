@@ -2,22 +2,16 @@
 export function WhatsAppShare({
   text,
   url,
-  primary = false,
   className = "",
 }: {
   text: string;
   url: string;
-  primary?: boolean;
   className?: string;
 }) {
   return (
     <a
       href={`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`}
-      className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5.5 ${
-        primary
-          ? "bg-accent font-semibold text-on-accent"
-          : "border border-line-strong font-medium"
-      } ${className}`}
+      className={`inline-flex h-12 items-center justify-center gap-2 rounded-full bg-whatsapp px-5.5 font-semibold text-bg ${className}`}
     >
       <svg
         aria-hidden="true"
@@ -30,10 +24,7 @@ export function WhatsAppShare({
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <circle cx="18" cy="5" r="3" />
-        <circle cx="6" cy="12" r="3" />
-        <circle cx="18" cy="19" r="3" />
-        <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
       </svg>
       Compartir por WhatsApp
     </a>

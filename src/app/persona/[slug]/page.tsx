@@ -271,7 +271,6 @@ export default async function PersonPage({
           )}
           <div className="mt-2 flex flex-wrap items-start gap-3">
             <WhatsAppShare
-              primary
               text={`${person.full_name} en El baloncesto de ayer`}
               url={shareUrl}
             />

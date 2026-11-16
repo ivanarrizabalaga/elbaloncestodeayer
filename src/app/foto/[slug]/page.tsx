@@ -12,6 +12,7 @@ import {
   withQuery,
 } from "@/lib/gallery";
 import { WhatsAppShare } from "@/components/whatsapp-share";
+import { InstagramShare } from "@/components/instagram-share";
 import {
   decadeLabel,
   PHOTO_STATUS_LABEL,
@@ -314,7 +315,10 @@ export default async function PhotoPage({
         }
         actions={
           <div className="mt-1.5 flex flex-col items-start gap-1">
-            <WhatsAppShare text={shareText} url={shareUrl} />
+            <div className="flex flex-wrap items-start gap-3">
+              <WhatsAppShare text={shareText} url={shareUrl} />
+              <InstagramShare text={shareText} url={shareUrl} />
+            </div>
             {photo.status === "published" && (
               <Link
                 href={`/foto/${photo.slug}/retirar`}

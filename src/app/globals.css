@@ -15,6 +15,12 @@
   --color-on-accent: #0e0e0e;
   /* Destructive actions only (withdraw). Text on bg passes AA; bg-danger takes text-bg. */
   --color-danger: #f26464;
+  /* Share buttons in each network's colours. Text on them passes AA:
+     dark text on WhatsApp green, white text on the darker Instagram stops. */
+  --color-whatsapp: #25d366;
+  --color-instagram-1: #c13584;
+  --color-instagram-2: #833ab4;
+  --color-instagram-3: #5851db;
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display:
