@@ -131,7 +131,7 @@ function Marker({ tag }: { tag: EditorTag }) {
   return (
     <span
       aria-hidden="true"
-      className={`absolute flex size-7.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-bg/85 text-[13px] font-semibold ${
+      className={`absolute flex size-7.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-bg/40 text-[13px] font-semibold ${
         tag.personName
           ? "border-2 border-fg"
           : "border-2 border-dashed border-accent text-accent"

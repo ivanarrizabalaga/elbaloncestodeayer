@@ -176,7 +176,7 @@ export function PhotoView({
                       className="flex size-11 items-center justify-center"
                     >
                       <span
-                        className={`flex size-7.5 items-center justify-center rounded-full bg-bg/85 text-[13px] font-semibold ${
+                        className={`flex size-7.5 items-center justify-center rounded-full bg-bg/40 text-[13px] font-semibold ${
                           tag.person
                             ? "border-2 border-fg"
                             : "border-2 border-dashed border-accent text-sm font-bold text-accent"
