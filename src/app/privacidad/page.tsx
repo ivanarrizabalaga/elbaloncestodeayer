@@ -31,7 +31,7 @@ export default function PrivacyPage() {
         <p>
           {controller ? (
             <>
-              El responsable del archivo es <strong>{controller}</strong>.
+              Los responsables del archivo son <strong>{controller}</strong>.
             </>
           ) : (
             "El archivo lo llevan sus administradores."
