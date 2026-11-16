@@ -10,13 +10,7 @@ import {
   withQuery,
 } from "@/lib/gallery";
 import { WhatsAppShare } from "@/components/whatsapp-share";
-import {
-  decadeLabel,
-  photoLabel,
-  photoSrc,
-  photoTitle,
-  seasonText,
-} from "@/lib/photos";
+import { photoLabel, photoSrc, photoTitle, seasonText } from "@/lib/photos";
 import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
 import { loadPersonOptions } from "@/lib/people";
@@ -182,7 +176,6 @@ export default async function PhotoPage({
   );
 
   const title = photoTitle(photo);
-  const decade = decadeLabel(photo.year_from);
   const shareUrl = `${await siteOrigin()}/foto/${photo.slug}`;
   const shareText = `¿Sales en esta foto? ${photoLabel(photo)} — El baloncesto de ayer`;
 
@@ -195,22 +188,25 @@ export default async function PhotoPage({
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-6 sm:px-6">
-      <nav aria-label="Ruta" className="text-sm text-muted">
-        <Link
-          href={withQuery("/", listQuery)}
-          className="underline-offset-4 hover:text-fg hover:underline"
+      {/* Back to the gallery, with the filters it was opened from (if any). */}
+      <Link
+        href={withQuery("/", listQuery)}
+        className="-ml-1 inline-flex min-h-11 items-center gap-1 self-start pr-2 text-sm text-muted hover:text-fg"
+      >
+        <svg
+          aria-hidden="true"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
         >
-          Archivo
-        </Link>
-        {decade && (
-          <>
-            {" "}
-            <span aria-hidden="true">/</span> {decade}
-          </>
-        )}{" "}
-        <span aria-hidden="true">/</span>{" "}
-        <span className="text-fg">{photoLabel(photo)}</span>
-      </nav>
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+        Volver a las fotos
+      </Link>
 
       {user?.isAdmin && (
         <div
