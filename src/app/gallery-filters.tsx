@@ -2,18 +2,23 @@
 
 import Form from "next/form";
 
+// Same shape as GalleryFilters in src/lib/gallery.ts (server-only, so not imported here).
 export type Filters = {
   decade: number | null;
   team: string;
   venue: string;
+  competition: string;
   unnamed: boolean;
 };
 
+// A value and how many photos it gives with the other filters applied.
+type Option<T> = { value: T; count: number };
+
 type Props = {
   filters: Filters;
-  decades: number[];
-  teams: string[];
-  venues: string[];
+  decades: Option<number>[];
+  teams: Option<string>[];
+  venues: Option<string>[];
 };
 
 // A GET form: filters live in the URL (shareable, works without JavaScript).
@@ -26,10 +31,14 @@ export function GalleryFilters({ filters, decades, teams, venues }: Props) {
       onChange={(event) => event.currentTarget.requestSubmit()}
       className="flex flex-wrap items-center gap-3"
     >
+      {/* No control of its own (it arrives from a photo page): kept when others change. */}
+      {filters.competition && (
+        <input type="hidden" name="competicion" value={filters.competition} />
+      )}
       <fieldset className="flex flex-wrap gap-2">
         <legend className="sr-only">Década</legend>
         <DecadePill value="" label="Todas" checked={filters.decade === null} />
-        {decades.map((decade) => (
+        {decades.map(({ value: decade }) => (
           <DecadePill
             key={decade}
             value={String(decade)}
@@ -115,7 +124,7 @@ function Select({
   name: string;
   label: string;
   value: string;
-  options: string[];
+  options: Option<string>[];
 }) {
   return (
     <label className="inline-flex items-center gap-2 text-sm text-muted">
@@ -126,9 +135,9 @@ function Select({
         className="h-10 max-w-48 rounded-lg border border-line-strong bg-[#1a1a1a] px-3 text-sm text-fg"
       >
         <option value="">Todos</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {options.map(({ value, count }) => (
+          <option key={value} value={value}>
+            {value} ({count})
           </option>
         ))}
       </select>

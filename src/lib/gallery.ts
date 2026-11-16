@@ -1,4 +1,5 @@
 import "server-only";
+import { decadeLabel } from "@/lib/photos";
 import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -6,11 +7,23 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 // The gallery filters, kept in the URL (`/?decada=1970&equipo=…`). Photo pages opened from
 // the gallery carry them too, so previous/next follow the same list.
+//
+// Competition has no control in the filter bar (it would crowd it on mobile): it is
+// reached from a photo page, and shown as an active-filter chip.
 export type GalleryFilters = {
   decade: number | null;
   team: string;
   venue: string;
+  competition: string;
   unnamed: boolean;
+};
+
+export const NO_FILTERS: GalleryFilters = {
+  decade: null,
+  team: "",
+  venue: "",
+  competition: "",
+  unnamed: false,
 };
 
 function first(value: string | string[] | undefined): string {
@@ -23,17 +36,13 @@ export function readGalleryFilters(params: SearchParams): GalleryFilters {
     decade: Number.isFinite(decade) ? decade - (decade % 10) : null,
     team: first(params.equipo),
     venue: first(params.pabellon),
+    competition: first(params.competicion),
     unnamed: first(params["sin-nombre"]) === "1",
   };
 }
 
 export function isFiltering(filters: GalleryFilters): boolean {
-  return (
-    filters.decade !== null ||
-    filters.team !== "" ||
-    filters.venue !== "" ||
-    filters.unnamed
-  );
+  return galleryQuery(filters).size > 0;
 }
 
 // The filters as a query string («decada=1970&equipo=CAU»), empty when there are none.
@@ -42,8 +51,145 @@ export function galleryQuery(filters: GalleryFilters): URLSearchParams {
   if (filters.decade !== null) query.set("decada", String(filters.decade));
   if (filters.team) query.set("equipo", filters.team);
   if (filters.venue) query.set("pabellon", filters.venue);
+  if (filters.competition) query.set("competicion", filters.competition);
   if (filters.unnamed) query.set("sin-nombre", "1");
   return query;
+}
+
+// The gallery filtered by one value only: what the values on a photo page link to.
+export function galleryHref(only: Partial<GalleryFilters>): string {
+  return withQuery("/", galleryQuery({ ...NO_FILTERS, ...only }));
+}
+
+// ---------------------------------------------------------------------------
+// Filter bar options. The archive is small: the gallery page loads every published
+// photo's filterable fields once, and the options are worked out here in memory.
+// ---------------------------------------------------------------------------
+
+export type IndexRow = {
+  id: string;
+  team: string | null;
+  venue: string | null;
+  competition: string | null;
+  year_from: number | null;
+};
+
+type Facet = "decade" | "team" | "venue" | "competition" | "unnamed";
+
+export function decadeOf(year: number | null): number | null {
+  return year === null ? null : year - (year % 10);
+}
+
+function matches(
+  row: IndexRow,
+  filters: GalleryFilters,
+  unnamed: ReadonlySet<string>,
+  except: Facet | null,
+): boolean {
+  return (
+    (except === "decade" ||
+      filters.decade === null ||
+      decadeOf(row.year_from) === filters.decade) &&
+    (except === "team" || !filters.team || row.team === filters.team) &&
+    (except === "venue" || !filters.venue || row.venue === filters.venue) &&
+    (except === "competition" ||
+      !filters.competition ||
+      row.competition === filters.competition) &&
+    (except === "unnamed" || !filters.unnamed || unnamed.has(row.id))
+  );
+}
+
+export type Option<T> = { value: T; count: number };
+
+// Each option lists only values that still give photos with the *other* filters applied
+// (pick «Años 80» and the team list only shows teams with photos in the 80s), with how
+// many. The selected value always stays, even at 0, so the control shows it.
+function options<T extends string | number>(
+  rows: IndexRow[],
+  filters: GalleryFilters,
+  unnamed: ReadonlySet<string>,
+  facet: Facet,
+  valueOf: (row: IndexRow) => T | null,
+  selected: T | null,
+): Option<T>[] {
+  const counts = new Map<T, number>();
+  for (const row of rows) {
+    const value = valueOf(row);
+    if (value === null || !matches(row, filters, unnamed, facet)) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  if (selected !== null && selected !== "" && !counts.has(selected)) {
+    counts.set(selected, 0);
+  }
+  return [...counts]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) =>
+      typeof a.value === "number"
+        ? (a.value as number) - (b.value as number)
+        : String(a.value).localeCompare(String(b.value), "es"),
+    );
+}
+
+export function filterOptions(
+  rows: IndexRow[],
+  filters: GalleryFilters,
+  unnamed: ReadonlySet<string>,
+) {
+  return {
+    // How many photos the current filters give.
+    matching: rows.filter((r) => matches(r, filters, unnamed, null)).length,
+    decades: options(
+      rows,
+      filters,
+      unnamed,
+      "decade",
+      (r) => decadeOf(r.year_from),
+      filters.decade,
+    ),
+    teams: options(rows, filters, unnamed, "team", (r) => r.team, filters.team),
+    venues: options(
+      rows,
+      filters,
+      unnamed,
+      "venue",
+      (r) => r.venue,
+      filters.venue,
+    ),
+  };
+}
+
+// The active filters as removable chips: label, and the gallery URL without that filter.
+export function activeFilters(
+  filters: GalleryFilters,
+): { label: string; href: string }[] {
+  const without = (change: Partial<GalleryFilters>) =>
+    withQuery("/", galleryQuery({ ...filters, ...change }));
+  const chips: { label: string; href: string }[] = [];
+  if (filters.decade !== null) {
+    chips.push({
+      label: decadeLabel(filters.decade) ?? String(filters.decade),
+      href: without({ decade: null }),
+    });
+  }
+  if (filters.team) {
+    chips.push({ label: filters.team, href: without({ team: "" }) });
+  }
+  if (filters.venue) {
+    chips.push({ label: filters.venue, href: without({ venue: "" }) });
+  }
+  if (filters.competition) {
+    chips.push({
+      label: filters.competition,
+      href: without({ competition: "" }),
+    });
+  }
+  if (filters.unnamed) {
+    chips.push({
+      label: "Caras sin nombre",
+      href: without({ unnamed: false }),
+    });
+  }
+  return chips;
 }
 
 // «/foto/x?decada=1970», or «/foto/x» when not filtering.
@@ -81,6 +227,7 @@ export function applyGalleryFilters<T extends Filterable<T>>(
   }
   if (filters.team) q = q.eq("team", filters.team);
   if (filters.venue) q = q.eq("venue", filters.venue);
+  if (filters.competition) q = q.eq("competition", filters.competition);
   if (filters.unnamed) q = q.in("id", unnamedIds);
   return q;
 }
