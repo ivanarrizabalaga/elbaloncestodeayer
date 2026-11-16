@@ -1,5 +1,9 @@
 // Small helpers shared by the public pages.
 
+import type { Database } from "@/lib/supabase/database.types";
+
+type PhotoStatus = Database["public"]["Enums"]["photo_status"];
+
 export type ImageSize = "thumb" | "large";
 
 // storage_key "photos/<id>": derivatives at <NEXT_PUBLIC_IMAGES_URL>/photos/<id>/{thumb,large}.webp
@@ -19,6 +23,14 @@ export function photoSrc(
   }
   return `${base}/${storageKey}/${size}.webp`;
 }
+
+export const PHOTO_STATUS_LABEL: Record<PhotoStatus, string> = {
+  draft: "Borrador",
+  proposed: "Propuesta",
+  published: "Publicada",
+  withdrawn: "Retirada",
+  rejected: "Rechazada",
+};
 
 type Titled = { team: string | null; season_label: string | null };
 

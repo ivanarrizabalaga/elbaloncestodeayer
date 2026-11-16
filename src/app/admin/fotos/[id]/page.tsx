@@ -6,7 +6,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { LookalikeList } from "@/components/lookalike-list";
 import { loadLookalikes } from "@/lib/lookalikes";
 import { loadPersonOptions } from "@/lib/people";
-import { photoLabel, photoSrc } from "@/lib/photos";
+import { PHOTO_STATUS_LABEL, photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, withdrawnByContributor } from "@/lib/review";
 import { createClient } from "@/lib/supabase/server";
 import { savePhoto, withdrawPhoto } from "./actions";
@@ -19,14 +19,6 @@ const MESSAGES: Record<string, string> = {
   publicada: "Foto publicada.",
   retirada: "Foto retirada: ya no se ve en la web. Puedes volver a publicarla.",
 };
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Borrador",
-  proposed: "Propuesta",
-  published: "Publicada",
-  withdrawn: "Retirada",
-  rejected: "Rechazada",
-};
-
 const ERRORS: Record<string, string> = {
   guardar: "No se pudieron guardar los cambios.",
   retirada:
@@ -114,7 +106,7 @@ export default async function EditPhotoPage({
           <span
             className={`rounded-full px-3 py-1 font-semibold ${published ? "bg-accent text-on-accent" : "border border-line-strong"}`}
           >
-            {STATUS_LABEL[photo.status]}
+            {PHOTO_STATUS_LABEL[photo.status]}
           </span>
           <Link
             href={`/foto/${photo.slug}`}
