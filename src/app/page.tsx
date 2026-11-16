@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { FaceCrop } from "@/components/face-crop";
+import {
+  applyGalleryFilters,
+  galleryQuery,
+  isFiltering,
+  readGalleryFilters,
+  withQuery,
+} from "@/lib/gallery";
 import { photoLabel, photoSrc, seasonText } from "@/lib/photos";
 import {
   openGraph,
@@ -20,13 +27,9 @@ function first(value: string | string[] | undefined): string {
 }
 
 function readFilters(params: SearchParams): Filters & { page: number } {
-  const decade = Number.parseInt(first(params.decada), 10);
   const page = Number.parseInt(first(params.pagina), 10);
   return {
-    decade: Number.isFinite(decade) ? decade - (decade % 10) : null,
-    team: first(params.equipo),
-    venue: first(params.pabellon),
-    unnamed: first(params["sin-nombre"]) === "1",
+    ...readGalleryFilters(params),
     page: Number.isFinite(page) && page > 1 ? Math.min(page, 50) : 1,
   };
 }
@@ -58,11 +61,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const filters = readFilters(params);
-  const filtering =
-    filters.decade !== null ||
-    filters.team !== "" ||
-    filters.venue !== "" ||
-    filters.unnamed;
+  const filtering = isFiltering(filters);
+  // Photo links carry the filters, so previous/next on the photo page follow this list.
+  const listQuery = galleryQuery(filters);
 
   const supabase = await createClient();
 
@@ -101,25 +102,20 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const venues = distinct(published.map((p) => p.venue));
   const unnamedPhotoIds = [...new Set(unnamed.map((t) => t.photo.id))];
 
-  // The gallery itself.
-  let query = supabase
-    .from("photos")
-    .select(
-      "id, slug, team, venue, season_label, year_from, storage_key, width, height",
-    )
-    .eq("status", "published")
+  // The gallery itself. Same order as photoNeighbours (src/lib/gallery.ts).
+  const { data: rows } = await applyGalleryFilters(
+    supabase
+      .from("photos")
+      .select(
+        "id, slug, team, venue, season_label, year_from, storage_key, width, height",
+      )
+      .eq("status", "published"),
+    filters,
+    unnamedPhotoIds,
+  )
     .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
     .range(0, filters.page * PAGE_SIZE); // one extra row tells us if there is more
-  if (filters.decade !== null) {
-    query = query
-      .gte("year_from", filters.decade)
-      .lte("year_from", filters.decade + 9);
-  }
-  if (filters.team) query = query.eq("team", filters.team);
-  if (filters.venue) query = query.eq("venue", filters.venue);
-  if (filters.unnamed) query = query.in("id", unnamedPhotoIds);
-
-  const { data: rows } = await query;
   const hasMore = (rows?.length ?? 0) > filters.page * PAGE_SIZE;
   const photos = (rows ?? []).slice(0, filters.page * PAGE_SIZE);
 
@@ -184,11 +180,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     );
   }
 
-  const nextPage = new URLSearchParams();
-  if (filters.decade !== null) nextPage.set("decada", String(filters.decade));
-  if (filters.team) nextPage.set("equipo", filters.team);
-  if (filters.venue) nextPage.set("pabellon", filters.venue);
-  if (filters.unnamed) nextPage.set("sin-nombre", "1");
+  const nextPage = galleryQuery(filters);
   nextPage.set("pagina", String(filters.page + 1));
 
   return (
@@ -256,7 +248,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               const c = counts.get(photo.id) ?? { named: 0, unnamed: 0 };
               return (
                 <li key={photo.id} className="mb-5 break-inside-avoid">
-                  <Link href={`/foto/${photo.slug}`} className="group block">
+                  <Link
+                    href={withQuery(`/foto/${photo.slug}`, listQuery)}
+                    className="group block"
+                  >
                     <span className="relative block overflow-hidden rounded-md bg-surface-3">
                       {photo.storage_key && (
                         // Plain <img>: derivatives are generated at upload time (phase 3).

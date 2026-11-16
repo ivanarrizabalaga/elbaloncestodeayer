@@ -3,6 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PhotoGrid } from "@/components/photo-grid";
+import {
+  galleryQuery,
+  photoNeighbours,
+  readGalleryFilters,
+  withQuery,
+} from "@/lib/gallery";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import {
   decadeLabel,
@@ -24,7 +30,7 @@ const getPhoto = cache(async (slug: string) => {
   const { data } = await supabase
     .from("photos")
     .select(
-      "id, slug, status, season_label, year_from, team, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height, proposed_by",
+      "id, slug, status, published_at, season_label, year_from, team, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height, proposed_by",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -67,41 +73,59 @@ function excerpt(text: string): string {
   return `${flat.slice(0, 157).replace(/\s+\S*$/, "")}…`;
 }
 
-export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
+export default async function PhotoPage({
+  params,
+  searchParams,
+}: PageProps<"/foto/[slug]">) {
   const { slug } = await params;
   const photo = await getPhoto(slug);
   if (!photo || !photo.storage_key || !photo.width || !photo.height) {
     notFound();
   }
 
+  // The gallery list this photo was opened from (its filters), for previous/next and «Archivo».
+  const filters = readGalleryFilters(await searchParams);
+  const listQuery = galleryQuery(filters);
+
   const supabase = await createClient();
   const user = await getCurrentUser();
-  const [tagsResult, memoriesResult, moreResult] = await Promise.all([
-    supabase
-      .from("tags")
-      .select(
-        "id, x, y, label_number, person:people(id, full_name, slug, claimed_by)",
-      )
-      .eq("photo_id", photo.id)
-      .is("removed_at", null)
-      .order("label_number"),
-    supabase
-      .from("memories")
-      .select("id, body, author_id")
-      .eq("photo_id", photo.id)
-      .is("hidden_at", null)
-      .order("created_at"),
-    photo.season_label
-      ? supabase
-          .from("photos")
-          .select("id, slug, team, season_label, storage_key, width, height")
-          .eq("status", "published")
-          .eq("season_label", photo.season_label)
-          .neq("id", photo.id)
-          .order("published_at", { ascending: false })
-          .limit(4)
-      : Promise.resolve({ data: [] }),
-  ]);
+  const [tagsResult, memoriesResult, moreResult, neighbours] =
+    await Promise.all([
+      supabase
+        .from("tags")
+        .select(
+          "id, x, y, label_number, person:people(id, full_name, slug, claimed_by)",
+        )
+        .eq("photo_id", photo.id)
+        .is("removed_at", null)
+        .order("label_number"),
+      supabase
+        .from("memories")
+        .select("id, body, author_id")
+        .eq("photo_id", photo.id)
+        .is("hidden_at", null)
+        .order("created_at"),
+      photo.season_label
+        ? supabase
+            .from("photos")
+            .select("id, slug, team, season_label, storage_key, width, height")
+            .eq("status", "published")
+            .eq("season_label", photo.season_label)
+            .neq("id", photo.id)
+            .order("published_at", { ascending: false })
+            .limit(4)
+        : Promise.resolve({ data: [] }),
+      // Drafts and other unpublished photos are not in the gallery: no previous/next.
+      photo.status === "published" && photo.published_at
+        ? photoNeighbours(
+            supabase,
+            { id: photo.id, published_at: photo.published_at },
+            filters,
+          )
+        : Promise.resolve({ previous: null, next: null }),
+    ]);
+  const photoHref = (s: string | null) =>
+    s ? withQuery(`/foto/${s}`, listQuery) : null;
 
   // Signed-in viewers get the person search and their own person (for «Quitar mi etiqueta»).
   const [people, ownPerson] = user
@@ -173,7 +197,7 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-6 sm:px-6">
       <nav aria-label="Ruta" className="text-sm text-muted">
         <Link
-          href="/"
+          href={withQuery("/", listQuery)}
           className="underline-offset-4 hover:text-fg hover:underline"
         >
           Archivo
@@ -213,6 +237,8 @@ export default async function PhotoPage({ params }: PageProps<"/foto/[slug]">) {
         height={photo.height}
         alt={`Foto: ${photoLabel(photo)}`}
         tags={tags}
+        previousHref={photoHref(neighbours.previous)}
+        nextHref={photoHref(neighbours.next)}
         viewer={canWrite ? viewer : null}
         people={people}
         heading={
