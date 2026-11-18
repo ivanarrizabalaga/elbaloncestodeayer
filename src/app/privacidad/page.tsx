@@ -71,6 +71,11 @@ export default function PrivacyPage() {
           administradores, y solo para contestarte.
         </p>
         <p>
+          <strong>Si pides acceso,</strong> guardamos tu nombre, tu email y que
+          confirmaste tener al menos 14 años. Solo los ven los administradores,
+          para decidir si te dan cuenta y mandarte el enlace para entrar.
+        </p>
+        <p>
           La única cookie es la de la sesión, para que sigas dentro cuando
           entras.
         </p>

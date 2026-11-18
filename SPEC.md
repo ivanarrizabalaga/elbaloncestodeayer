@@ -35,6 +35,7 @@ Two roles: **user** and **admin**. All admins can do exactly the same things. Vi
 | Invite a tagged person | | ✓ | ✓ |
 | Claim their person profile («Este soy yo») | | ✓ | ✓ |
 | Remove their own tag (immediate) | | ✓ | ✓ |
+| Request an account («Pide acceso») | ✓ (form) | | |
 | Request a photo withdrawal | ✓ (form) | ✓ | ✓ |
 | Withdraw a photo they proposed (immediate) | | ✓ | ✓ |
 | Propose photos | | ✓ (goes to review) | — |
@@ -43,6 +44,7 @@ Two roles: **user** and **admin**. All admins can do exactly the same things. Vi
 | Undo tags / hide memories | | | ✓ |
 | Create, edit and merge people | | | ✓ |
 | Make admin, remove admin, invite admins | | | ✓ |
+| Approve or reject account requests | | | ✓ |
 | Block users | | | ✓ |
 
 Rules:
@@ -65,6 +67,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Photo page | `/foto/[slug]` | `Foto.dc.html`, `FotoMovil.dc.html` | Photo with numbered markers on faces, «En la foto» list (own profile / Invite / «Sé quién es»), details, story, memories, «Más de esta temporada», privacy links. Team, decade, venue and competition in the details link to the gallery filtered by that value. Full-size view over the page (back closes it). Under the photo, «Anterior» / «Siguiente» through the gallery list it was opened from: gallery links carry the filters in the URL (`?decada=…`), the strip also takes a swipe (the photo itself stays for tagging) and ← → on a keyboard, and it stops at both ends. «Volver a las fotos» (instead of breadcrumbs: the archive is a flat, filtered list) goes back to the gallery with those filters |
 | Person page | `/persona/[slug]` | `Persona.dc.html` | Name, face crop, «Sale con», photos by season, share, invite |
 | Invitation | `/invitacion/[token]` | `Invitacion.dc.html` | Arrives via link (WhatsApp): «¿Eres tú?» → email → magic link → signed in. Also «No soy yo» |
+| Request access | `/registro` | _(no mockup)_ | Name, email and «Tengo 14 años o más»; linked from `/entrar`. Same answer whether or not the email already has an account |
 | Propose photos | `/proponer` | _(no mockup)_ | Users upload photos for review; «Tus fotos» with status and «Retirar esta foto» |
 | Withdrawal request | `/foto/[slug]/retirar` | _(no mockup)_ | Reason and optional contact; the contributor withdraws directly instead |
 | My account | `/cuenta` | _(no mockup)_ | Change the display name, link to your person and photos, sign out, delete the account |
@@ -75,7 +78,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 |---|---|---|---|
 | Pending review | `/admin/pendiente` | `AdminPendiente.dc.html` | Queue: proposed photos, suggested names, withdrawal requests (priority), «No soy yo» disputes, possible duplicates. «Me lo quedo» to split the work. Recent activity with undo |
 | Upload and tag | `/admin/subir` | `AdminSubir.dc.html` | Multi-upload into drafts, click a face → search existing person / create new / leave as «?». Photo details. Publish. Drafts as a grid or a table (50 per page, filter by imported folder, lookalikes flagged by `image_hash`) with bulk «Publicar» / «Descartar» |
-| Users and admins | `/admin/usuarios` | `AdminUsuarios.dc.html` | List of admins (with pending invitations) and users. Invite admin, make/remove admin, block |
+| Users and admins | `/admin/usuarios` | `AdminUsuarios.dc.html` | List of admins (with pending invitations), users and access requests. Invite admin, make/remove admin, block, approve/reject requests |
 | People | `/admin/personas` | _(no mockup)_ | List, edit, merge duplicates |
 | Photos | `/admin/fotos` | _(no mockup)_ | List with status (draft, published, withdrawn), search, edit |
 | Instagram import | — | _(no mockup)_ | One-off: load Jorge's export as drafts (local script, see §7) |
@@ -119,6 +122,10 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 **invitations**
 - `token_hash`, `role` (`user` | `admin`), `person_id` (nullable), `tag_id` (nullable: the tag the invite was sent from), `email` (nullable), `invited_by`, `created_at`, `expires_at` (7 days), `accepted_at`, `accepted_by`
 
+**access_requests** — «Pide acceso» from `/registro`
+- `name`, `email`, `age_confirmed_at`, `status` (`pending` | `approved` | `rejected`), `invitation_id` (set on approval), `resolved_by`, `resolved_at`, `created_at`
+- One pending request per email. Only admins read them; they are written only through `SECURITY DEFINER` functions.
+
 **review_items** — the "Pending" queue
 - `kind` (`photo_proposal` | `name_suggestion` | `removal_request` | `tag_dispute` | `duplicate_person`)
 - `status` (`open` | `resolved` | `dismissed`), `priority` (bool; `removal_request` is always priority)
@@ -139,6 +146,8 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 4. *Not me* («No soy yo») → creates a `review_item` of kind `tag_dispute` (can propose the correct name).
 
 **Invite an admin** — from `/admin/usuarios`: the admin types an email; an invitation with `role = admin` is bound to that email and a magic link is sent to it (the account is created if needed), and the link is also shown to copy. Accepting promotes the account; only the account with that email can accept it. Pending admin invitations can be resent (new link, 7 more days) or cancelled. The optional message in the mockup was left out: the email is Supabase's sign-in email.
+
+**Request access** — for people nobody has invited yet. `/registro` (linked from `/entrar`) asks for a name, an email and «Tengo 14 años o más»; a hidden honeypot field drops bots. The answer is always «Solicitud enviada», also when the email already has an account or a pending request (nothing is stored then). Admins see the requests in a «Solicitudes» tab of `/admin/usuarios`, counted in the admin menu. *Aprobar* creates a user invitation bound to the email and sends it like an admin invitation (account created, magic link to `/invitacion/[token]`); accepting it sets the display name to the requested name and «Invitado por» to the approving admin. Approved requests not yet accepted can be resent. *Rechazar* asks for confirmation and does not notify; they can ask again. No email to admins on new requests: they see them in the menu. Both decisions are recorded in activity.
 
 **Users and admins** — `/admin/usuarios` lists admins (with pending invitations) and users (with their person, who invited them and their contributions; searchable). Make admin, remove admin, block and unblock ask for confirmation, go through `SECURITY DEFINER` functions and are recorded in activity. An admin cannot block themselves, and the last active admin cannot be removed (database trigger). «Invitado por» is the inviter of the first invitation an account accepted.
 
@@ -235,7 +244,7 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 - When claiming their profile, a person agrees to their name appearing on photos where they are tagged.
 - Removing a tag is immediate; a photo withdrawal request arrives as priority.
 - Privacy page stating who runs the archive (the controller's name comes from the `PRIVACY_CONTROLLER_NAME` environment variable, so it is not in the public repo) and how to request changes. Contact: `hola@elbaloncestodeayer.com`, forwarded to the archive's Gmail with Cloudflare Email Routing.
-- Accounts are for people aged 14 or over (LOPDGDD art. 7), stated on the privacy page; accounts are by invitation, so stating it is enough.
+- Accounts are for people aged 14 or over (LOPDGDD art. 7), stated on the privacy page. Invited people are vouched for by whoever invites them; people who ask for access (`/registro`) must tick «Tengo 14 años o más», stored as `access_requests.age_confirmed_at`. No date of birth is asked for (data minimisation).
 - **Minors:** the archive is of old photos. Photos showing people who are minors **today** are not published without their parents' permission, and those people are never tagged by name. The proposal checkbox includes it; admins apply it when reviewing; a withdrawal request for a minor is always granted.
 - **Copy of your data (GDPR art. 15 / 20):** requested by email and answered within a month. No button: see §12.
 - No tracking cookies or invasive analytics.

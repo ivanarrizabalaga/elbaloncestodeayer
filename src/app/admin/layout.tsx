@@ -8,10 +8,17 @@ export const metadata: Metadata = { robots: { index: false } };
 // Every /admin page is for admins only. Server Actions check again on their own.
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   await requireAdmin();
-  const pending = await countOpenReviewItems(await createClient());
+  const supabase = await createClient();
+  const [pending, { count: requests }] = await Promise.all([
+    countOpenReviewItems(supabase),
+    supabase
+      .from("access_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+  ]);
   return (
     <>
-      <AdminNav pending={pending} />
+      <AdminNav pending={pending} requests={requests ?? 0} />
       {children}
     </>
   );

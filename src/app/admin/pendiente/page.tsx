@@ -656,6 +656,15 @@ function ActivityRow({
       if (memory) undo = ["Ocultar", memory.hidden_at !== null];
       break;
     }
+    case "access_request_approved":
+    case "access_request_rejected": {
+      const name = payloadText(entry.data, "name") ?? "alguien";
+      text =
+        entry.action === "access_request_approved"
+          ? `aprobó la solicitud de acceso de ${name}`
+          : `rechazó la solicitud de acceso de ${name}`;
+      break;
+    }
     case "person_claimed":
     case "invitation_accepted": {
       const person = targets.people.get(id);
@@ -664,7 +673,9 @@ function ActivityRow({
       text =
         entry.action === "person_claimed"
           ? `dijo que es ${name}`
-          : `aceptó la invitación como ${name}${asAdmin ? " (admin)" : ""}`;
+          : !entry.target_id
+            ? `aceptó la invitación${asAdmin ? " como admin" : " y entró al archivo"}`
+            : `aceptó la invitación como ${name}${asAdmin ? " (admin)" : ""}`;
       if (person) {
         undo = ["Desvincular", person.claimed_by !== entry.actor_id];
       }
