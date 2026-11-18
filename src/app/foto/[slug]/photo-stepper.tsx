@@ -33,7 +33,7 @@ export function PhotoStepper({ previousHref, nextHref }: Props) {
           : event.key === "ArrowRight"
             ? nextHref
             : null;
-      if (href) router.push(href);
+      if (href) router.replace(href);
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -49,7 +49,7 @@ export function PhotoStepper({ previousHref, nextHref }: Props) {
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
     // Finger moves left: the next photo comes in from the right.
     const href = dx < 0 ? nextHref : previousHref;
-    if (href) router.push(href);
+    if (href) router.replace(href);
   }
 
   return (
@@ -99,7 +99,7 @@ function Step({
     );
   }
   return (
-    <Link href={href} rel={rel} draggable={false} className={className}>
+    <Link href={href} replace rel={rel} draggable={false} className={className}>
       {children}
     </Link>
   );

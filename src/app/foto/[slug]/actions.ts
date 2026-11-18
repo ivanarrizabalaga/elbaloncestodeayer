@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { addTag } from "@/app/admin/fotos/[id]/actions";
 import { createPerson, nextLabelNumber } from "@/lib/people";
 import { reviewGroupKey } from "@/lib/review";
@@ -151,21 +151,21 @@ export async function addMemory(formData: FormData) {
       .from("memories")
       .insert({ photo_id: photo.id, author_id: user.id, body });
   }
-  redirect(`/foto/${slug}#historia`);
+  redirect(`/foto/${slug}#historia`, RedirectType.replace);
 }
 
 export async function updateMemory(formData: FormData) {
   const { slug, body, id } = memoryFields(formData);
   const supabase = await createClient();
   if (body) await supabase.from("memories").update({ body }).eq("id", id);
-  redirect(`/foto/${slug}#historia`);
+  redirect(`/foto/${slug}#historia`, RedirectType.replace);
 }
 
 export async function deleteMemory(formData: FormData) {
   const { slug, id } = memoryFields(formData);
   const supabase = await createClient();
   await supabase.from("memories").delete().eq("id", id);
-  redirect(`/foto/${slug}#historia`);
+  redirect(`/foto/${slug}#historia`, RedirectType.replace);
 }
 
 function memoryFields(formData: FormData) {

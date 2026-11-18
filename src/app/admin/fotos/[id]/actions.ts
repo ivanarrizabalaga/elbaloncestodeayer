@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { readPhotoDetails } from "@/lib/photo-details";
 import { createPerson, nextLabelNumber } from "@/lib/people";
 import { firstPublishFields } from "@/lib/publish";
@@ -75,7 +75,7 @@ export async function savePhoto(formData: FormData) {
     instagramUrl &&
     !/^https:\/\/(www\.)?instagram\.com\//.test(instagramUrl)
   ) {
-    redirect(`/admin/fotos/${id}?error=instagram`);
+    redirect(`/admin/fotos/${id}?error=instagram`, RedirectType.replace);
   }
 
   const { data: photo } = await supabase
@@ -95,7 +95,7 @@ export async function savePhoto(formData: FormData) {
   // come back, with the address it already had.
   const republishing = intent === "publish" && photo.status === "withdrawn";
   if (republishing && (await withdrawnByContributor(supabase, id))) {
-    redirect(`/admin/fotos/${id}?error=retirada`);
+    redirect(`/admin/fotos/${id}?error=retirada`, RedirectType.replace);
   }
   const publishing =
     intent === "publish" &&
@@ -115,7 +115,7 @@ export async function savePhoto(formData: FormData) {
     .from("photos")
     .update({ ...changes, ...publishFields })
     .eq("id", id);
-  if (error) redirect(`/admin/fotos/${id}?error=guardar`);
+  if (error) redirect(`/admin/fotos/${id}?error=guardar`, RedirectType.replace);
 
   // A published proposal leaves the review queue.
   if (publishing && photo.status === "proposed") {
@@ -133,6 +133,7 @@ export async function savePhoto(formData: FormData) {
 
   redirect(
     `/admin/fotos/${id}?ok=${publishing || republishing ? "publicada" : "guardada"}`,
+    RedirectType.replace,
   );
 }
 
@@ -150,7 +151,8 @@ export async function withdrawPhoto(formData: FormData) {
     .eq("status", "published")
     .select("id")
     .maybeSingle();
-  if (!photo) redirect(`/admin/fotos/${id}?error=guardar`);
+  if (!photo)
+    redirect(`/admin/fotos/${id}?error=guardar`, RedirectType.replace);
 
   await supabase
     .from("review_items")
@@ -163,7 +165,7 @@ export async function withdrawPhoto(formData: FormData) {
     .eq("kind", "removal_request")
     .eq("status", "open");
 
-  redirect(`/admin/fotos/${id}?ok=retirada`);
+  redirect(`/admin/fotos/${id}?ok=retirada`, RedirectType.replace);
 }
 
 function inUnitRange(n: number): boolean {

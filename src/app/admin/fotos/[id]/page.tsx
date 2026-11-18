@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { discardDrafts } from "@/app/admin/subir/actions";
+import { BackLink } from "@/components/back-link";
 import { ConfirmButton } from "@/components/confirm-button";
 import { LookalikeList } from "@/components/lookalike-list";
 import { Field, PhotoDetailsFields } from "@/components/photo-details-fields";
@@ -88,12 +89,12 @@ export default async function EditPhotoPage({
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <Link
-            href="/admin/subir"
+          <BackLink
+            fallback="/admin/subir"
             className="text-sm text-muted underline-offset-4 hover:text-fg hover:underline"
           >
-            ← Subir fotos y borradores
-          </Link>
+            ← Volver
+          </BackLink>
           <h1 className="font-display text-[40px] leading-none font-bold">
             {published ? "Editar foto" : "Etiquetar y publicar"}
           </h1>
