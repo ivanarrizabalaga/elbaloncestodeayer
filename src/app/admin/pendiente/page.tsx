@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
+import { ConfirmButton } from "@/components/confirm-button";
 import { FaceCrop } from "@/components/face-crop";
 import { photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, reviewGroupKey } from "@/lib/review";
@@ -288,6 +289,8 @@ type Group = {
   latest: string;
 };
 type Action = (formData: FormData) => Promise<void>;
+// Destructive actions ask first: [title, body, confirm label].
+type Confirm = [string, string, string];
 
 function ReviewCard({
   group,
@@ -351,19 +354,30 @@ function ReviewCard({
             name="ids"
             value={rows.map((r) => r.id).join(",")}
           />
-          {card.actions.map(([label, action], i) => (
+          {card.actions.map(([label, action, confirm], i) => (
             <Fragment key={label}>
-              <button
-                type="submit"
-                formAction={action}
-                className={`inline-flex h-11 items-center rounded-full px-4 text-[13px] ${
-                  i === 0
-                    ? "bg-accent font-semibold text-on-accent"
-                    : "border border-line-strong font-medium"
-                }`}
-              >
-                {label}
-              </button>
+              {confirm ? (
+                <ConfirmButton
+                  compact
+                  label={label}
+                  title={confirm[0]}
+                  body={confirm[1]}
+                  confirmLabel={confirm[2]}
+                  action={action}
+                />
+              ) : (
+                <button
+                  type="submit"
+                  formAction={action}
+                  className={`inline-flex h-11 items-center rounded-full px-4 text-[13px] ${
+                    i === 0
+                      ? "bg-accent font-semibold text-on-accent"
+                      : "border border-line-strong font-medium"
+                  }`}
+                >
+                  {label}
+                </button>
+              )}
               {/* A link right after the main action (e.g. «Revisar»). */}
               {i === 0 && card.link}
             </Fragment>
@@ -405,7 +419,7 @@ function describe(
   type: string;
   title: string;
   detail: string;
-  actions: [string, Action][];
+  actions: [string, Action, Confirm?][];
   link?: ReactNode;
   extra?: ReactNode;
 } {
@@ -483,7 +497,15 @@ function describe(
         // «Publicar» as it is; «Revisar» to change details or tag faces first.
         actions: [
           ["Publicar", publishProposal],
-          ["Rechazar", rejectProposal],
+          [
+            "Rechazar",
+            rejectProposal,
+            [
+              "¿Rechazar esta foto?",
+              "Se borran los archivos y no se publica. Quien la propuso la verá como «No publicada» en sus fotos. No se puede deshacer.",
+              "Sí, rechazar",
+            ],
+          ],
         ],
         link: item.photo && (
           <Link
