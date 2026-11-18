@@ -34,6 +34,65 @@ export type Database = {
   };
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          age_confirmed_at: string;
+          created_at: string;
+          email: string;
+          id: string;
+          invitation_id: string | null;
+          name: string;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: Database["public"]["Enums"]["access_request_status"];
+        };
+        ComputedFields: never;
+        Insert: {
+          age_confirmed_at: string;
+          created_at?: string;
+          email: string;
+          id?: string;
+          invitation_id?: string | null;
+          name: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database["public"]["Enums"]["access_request_status"];
+        };
+        Update: {
+          age_confirmed_at?: string;
+          created_at?: string;
+          email?: string;
+          id?: string;
+          invitation_id?: string | null;
+          name?: string;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: Database["public"]["Enums"]["access_request_status"];
+        };
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_invitation_id_fkey";
+            columns: ["invitation_id"];
+            isOneToOne: false;
+            referencedRelation: "invitations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "access_requests_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profile_names";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "access_requests_resolved_by_fkey";
+            columns: ["resolved_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       activity: {
         Row: {
           action: string;
@@ -682,6 +741,10 @@ export type Database = {
           tags_count: number;
         }[];
       };
+      approve_access_request: {
+        Args: { p_id: string; p_token_hash: string };
+        Returns: string;
+      };
       claim_person: { Args: { p_person_id: string }; Returns: string };
       delete_own_account: {
         Args: Record<PropertyKey, never>;
@@ -725,7 +788,12 @@ export type Database = {
           photo_id: string;
         }[];
       };
+      reject_access_request: { Args: { p_id: string }; Returns: undefined };
       remove_own_tag: { Args: { p_tag_id: string }; Returns: undefined };
+      request_access: {
+        Args: { p_age_confirmed: boolean; p_email: string; p_name: string };
+        Returns: undefined;
+      };
       set_user_blocked: {
         Args: { p_blocked: boolean; p_user_id: string };
         Returns: undefined;
@@ -740,6 +808,7 @@ export type Database = {
       withdraw_own_photo: { Args: { p_photo_id: string }; Returns: string };
     };
     Enums: {
+      access_request_status: "pending" | "approved" | "rejected";
       photo_status:
         "proposed" | "draft" | "published" | "rejected" | "withdrawn";
       review_kind:
@@ -880,6 +949,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      access_request_status: ["pending", "approved", "rejected"],
       photo_status: ["proposed", "draft", "published", "rejected", "withdrawn"],
       review_kind: [
         "photo_proposal",

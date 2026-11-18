@@ -4,12 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Admin sections. Only the ones that exist; the rest arrive in later phases.
-export function AdminNav({ pending }: { pending: number }) {
+// The badge on «Usuarios y admins» counts pending access requests.
+export function AdminNav({
+  pending,
+  requests,
+}: {
+  pending: number;
+  requests: number;
+}) {
   const pathname = usePathname();
   const links = [
     { href: "/admin/pendiente", label: "Pendiente", badge: pending },
     { href: "/admin/subir", label: "Subir fotos", badge: 0 },
-    { href: "/admin/usuarios", label: "Usuarios y admins", badge: 0 },
+    {
+      href: "/admin/usuarios",
+      label: "Usuarios y admins",
+      badge: requests,
+      query: requests > 0 ? "?lista=solicitudes" : "",
+    },
   ];
   return (
     <nav aria-label="Administración" className="border-b border-line">
@@ -22,7 +34,7 @@ export function AdminNav({ pending }: { pending: number }) {
           return (
             <Link
               key={link.href}
-              href={link.href}
+              href={`${link.href}${"query" in link ? link.query : ""}`}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium whitespace-nowrap ${
                 active

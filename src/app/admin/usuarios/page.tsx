@@ -8,9 +8,11 @@ import { fold } from "@/lib/slug";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
 import {
+  approveAccessRequest,
   blockUser,
   cancelInvitation,
   makeAdmin,
+  rejectAccessRequest,
   removeAdmin,
   resendInvitation,
   unblockUser,
@@ -25,6 +27,11 @@ const ERRORS: Record<string, string> = {
   "1": "No se pudo completar la acción.",
 };
 
+const NOTICES: Record<string, string> = {
+  reenviada: "Invitación reenviada, con un enlace nuevo.",
+  aprobada: "Solicitud aprobada. Le hemos mandado un email para entrar.",
+};
+
 const BUTTON =
   "inline-flex h-11 items-center rounded-full border border-line-strong px-4 text-[13px] font-medium";
 
@@ -34,21 +41,43 @@ export default async function UsersPage({
   const me = await requireAdmin();
   const { lista, q, error, ok } = await searchParams;
   const showUsers = lista === "usuarios";
+  const showRequests = lista === "solicitudes";
   const query = typeof q === "string" ? q.trim() : "";
   const supabase = await createClient();
+  const now = new Date().toISOString();
 
-  const [{ data: accounts }, { data: invitations }] = await Promise.all([
+  const [
+    { data: accounts },
+    { data: invitations },
+    { data: requestRows },
+    { data: approvedRows },
+  ] = await Promise.all([
     supabase.rpc("admin_user_list"),
     supabase
       .from("invitations")
       .select("id, email, created_at, invited_by")
       .eq("role", "admin")
       .is("accepted_at", null)
-      .gt("expires_at", new Date().toISOString())
+      .gt("expires_at", now)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("access_requests")
+      .select("id, name, email, created_at")
+      .eq("status", "pending")
+      .order("created_at"),
+    // Approved requests whose invitation has not been accepted yet (they can be resent).
+    supabase
+      .from("invitations")
+      .select("id, email, created_at, invited_by, access_requests!inner(name)")
+      .eq("role", "user")
+      .is("accepted_at", null)
+      .gt("expires_at", now)
       .order("created_at", { ascending: false }),
   ]);
   const all = accounts ?? [];
   const pending = invitations ?? [];
+  const requests = requestRows ?? [];
+  const approved = approvedRows ?? [];
   const admins = all.filter((a) => a.role === "admin" && !a.blocked_at);
   const users = all.filter((a) => !(a.role === "admin" && !a.blocked_at));
   const nameById = new Map(all.map((a) => [a.id, a.display_name]));
@@ -58,6 +87,7 @@ export default async function UsersPage({
       )
     : users;
   const problem = typeof error === "string" ? ERRORS[error] : undefined;
+  const notice = typeof ok === "string" ? NOTICES[ok] : undefined;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-8 sm:px-6">
@@ -75,25 +105,110 @@ export default async function UsersPage({
         <InviteAdmin />
       </div>
 
-      {(problem || ok === "reenviada") && (
+      {(problem || notice) && (
         <p
           role={problem ? "alert" : "status"}
           className={`rounded-lg px-4 py-3 ${problem ? "border border-accent" : "bg-surface-2"}`}
         >
-          {problem ?? "Invitación reenviada, con un enlace nuevo."}
+          {problem ?? notice}
         </p>
       )}
 
-      <nav aria-label="Lista" className="flex gap-1 border-b border-line">
-        <Tab href="?" active={!showUsers}>
+      <nav
+        aria-label="Lista"
+        className="flex gap-1 overflow-x-auto border-b border-line"
+      >
+        <Tab href="?" active={!showUsers && !showRequests}>
           Administradores · {admins.length}
         </Tab>
         <Tab href="?lista=usuarios" active={showUsers}>
           Usuarios · {users.length}
         </Tab>
+        <Tab href="?lista=solicitudes" active={showRequests}>
+          Solicitudes · {requests.length}
+        </Tab>
       </nav>
 
-      {!showUsers ? (
+      {showRequests ? (
+        <>
+          {requests.length === 0 && approved.length === 0 ? (
+            <p className="text-muted">No hay solicitudes pendientes.</p>
+          ) : (
+            <Table head={["Persona", "Estado", "Pidió acceso", "Acciones"]}>
+              {requests.map((r) => (
+                <tr key={r.id} className="border-t border-line">
+                  <Td>
+                    <Who name={r.name} email={r.email} />
+                  </Td>
+                  <Td>
+                    <Chip>Pendiente</Chip>
+                  </Td>
+                  <Td>{timeAgo(r.created_at)}</Td>
+                  <Td>
+                    <form className="flex items-center gap-2 whitespace-nowrap">
+                      <input type="hidden" name="id" value={r.id} />
+                      <input type="hidden" name="lista" value="solicitudes" />
+                      <button
+                        type="submit"
+                        formAction={approveAccessRequest}
+                        className={BUTTON}
+                      >
+                        Aprobar
+                      </button>
+                      <ConfirmButton
+                        compact
+                        label="Rechazar"
+                        title={`¿Rechazar la solicitud de ${r.name}?`}
+                        body="No le avisaremos. Si se equivocó o quiere intentarlo otra vez, puede volver a pedir acceso."
+                        confirmLabel="Sí, rechazar"
+                        action={rejectAccessRequest}
+                      />
+                    </form>
+                  </Td>
+                </tr>
+              ))}
+              {approved.map((invitation) => (
+                <tr key={invitation.id} className="border-t border-line">
+                  <Td>
+                    <Who
+                      name={invitation.access_requests[0]?.name ?? null}
+                      email={invitation.email}
+                    />
+                  </Td>
+                  <Td>
+                    <Chip muted>Aprobada, aún no ha entrado</Chip>
+                  </Td>
+                  <Td>
+                    Aprobada por{" "}
+                    {(invitation.invited_by &&
+                      nameById.get(invitation.invited_by)) ??
+                      "un admin"}{" "}
+                    {timeAgo(invitation.created_at)}
+                  </Td>
+                  <Td>
+                    <form>
+                      <input type="hidden" name="id" value={invitation.id} />
+                      <input type="hidden" name="lista" value="solicitudes" />
+                      <button
+                        type="submit"
+                        formAction={resendInvitation}
+                        className={BUTTON}
+                      >
+                        Reenviar
+                      </button>
+                    </form>
+                  </Td>
+                </tr>
+              ))}
+            </Table>
+          )}
+          <p className="text-sm text-muted">
+            Llegan desde «Pide acceso», en la pantalla de entrar. Al aprobar, le
+            mandamos un email con un enlace para entrar. Al rechazar, no le
+            avisamos.
+          </p>
+        </>
+      ) : !showUsers ? (
         <>
           <Table
             head={[

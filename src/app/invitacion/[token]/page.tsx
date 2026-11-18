@@ -37,6 +37,11 @@ export default async function InvitationPage({
   if (!invitation) notFound();
 
   const firstName = invitation.person_name?.split(" ")[0] ?? "";
+  // Without a person, the invitation is an admin invitation or an approved access request.
+  const generalTitle =
+    invitation.role === "admin"
+      ? "Te han invitado como admin"
+      : "Tu solicitud está aprobada";
   const inviter = invitation.inviter_name ?? "Alguien";
   const photoLabel = [
     invitation.photo_team,
@@ -88,9 +93,7 @@ export default async function InvitationPage({
     return (
       <Card photo={<Photo invitation={invitation} name={firstName} />}>
         <h1 className={TITLE}>
-          {invitation.person_name
-            ? `¿Eres tú, ${firstName}?`
-            : "Te han invitado como admin"}
+          {invitation.person_name ? `¿Eres tú, ${firstName}?` : generalTitle}
         </h1>
         {problem && <Problem>{problem}</Problem>}
         <form action={acceptInvitation} className="flex flex-col gap-4">
@@ -208,22 +211,23 @@ export default async function InvitationPage({
   // First screen.
   return (
     <Card photo={<Photo invitation={invitation} name={firstName} />}>
-      <p className="text-muted">
-        {inviter} te ha etiquetado en una foto
-        {photoLabel ? ` de ${photoLabel}` : ""}.
-      </p>
+      {invitation.person_name && (
+        <p className="text-muted">
+          {inviter} te ha etiquetado en una foto
+          {photoLabel ? ` de ${photoLabel}` : ""}.
+        </p>
+      )}
       <h1 className={TITLE}>
-        {invitation.person_name
-          ? `¿Eres tú, ${firstName}?`
-          : "Te han invitado al archivo"}
+        {invitation.person_name ? `¿Eres tú, ${firstName}?` : generalTitle}
       </h1>
       <p className="text-muted">
-        Si eres tú, entra para ver todas tus fotos, añadir recuerdos y etiquetar
-        a tus compañeros. Sin contraseñas.
+        {invitation.person_name ? "Si eres tú, entra" : "Entra"} para ver todas
+        tus fotos, añadir recuerdos y etiquetar a tus compañeros. Sin
+        contraseñas.
       </p>
       <div className="flex flex-wrap gap-3">
         <Link href="?paso=email" className={PRIMARY}>
-          Sí, soy yo
+          {invitation.person_name ? "Sí, soy yo" : "Entrar"}
         </Link>
         {invitation.person_name && (
           <Link href="?paso=no-soy-yo" className={SECONDARY}>

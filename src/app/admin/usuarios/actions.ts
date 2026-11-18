@@ -21,9 +21,19 @@ function target(formData: FormData): string {
   return id;
 }
 
-function back(formData: FormData, error?: string): never {
-  const list = formData.get("lista") === "usuarios" ? "lista=usuarios&" : "";
-  redirect(`${PATH}?${list}${error ? `error=${error}` : ""}`);
+// Back to the tab the form was on, with an optional «error=…» or «ok=…».
+function back(formData: FormData, query = ""): never {
+  const lista = formData.get("lista");
+  const list =
+    lista === "usuarios" || lista === "solicitudes" ? `lista=${lista}&` : "";
+  redirect(`${PATH}?${list}${query}`);
+}
+
+function failure(error: { message: string } | null): string {
+  if (!error) return "";
+  return error.message.includes("at least one admin")
+    ? "error=ultimo"
+    : "error=1";
 }
 
 async function setRole(formData: FormData, role: "admin" | "user") {
@@ -34,14 +44,7 @@ async function setRole(formData: FormData, role: "admin" | "user") {
     p_role: role,
   });
   revalidatePath(PATH, "layout");
-  back(
-    formData,
-    error
-      ? error.message.includes("at least one admin")
-        ? "ultimo"
-        : "1"
-      : undefined,
-  );
+  back(formData, failure(error));
 }
 
 export async function makeAdmin(formData: FormData) {
@@ -60,14 +63,7 @@ async function setBlocked(formData: FormData, blocked: boolean) {
     p_blocked: blocked,
   });
   revalidatePath(PATH);
-  back(
-    formData,
-    error
-      ? error.message.includes("at least one admin")
-        ? "ultimo"
-        : "1"
-      : undefined,
-  );
+  back(formData, failure(error));
 }
 
 export async function blockUser(formData: FormData) {
@@ -114,7 +110,8 @@ export async function inviteAdmin(rawEmail: string): Promise<InviteResult> {
   return { ok: true, url, emailed: await sendInvitationEmail(email, url) };
 }
 
-// «Reenviar»: a new link (only the hash of the old one is stored) and 7 more days.
+// «Reenviar»: a new link (only the hash of the old one is stored) and 7 more days. For the
+// invitations sent by email: admin invitations and approved access requests (no person).
 export async function resendInvitation(formData: FormData) {
   await requireAdmin();
   const id = target(formData);
@@ -127,18 +124,18 @@ export async function resendInvitation(formData: FormData) {
       expires_at: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
     })
     .eq("id", id)
-    .eq("role", "admin")
+    .is("person_id", null)
     .is("accepted_at", null)
     .select("email")
     .maybeSingle();
-  if (!invitation?.email) back(formData, "1");
+  if (!invitation?.email) back(formData, "error=1");
 
   const sent = await sendInvitationEmail(
     invitation.email,
     `${await siteOrigin()}/invitacion/${token}`,
   );
   revalidatePath(PATH);
-  redirect(`${PATH}?${sent ? "ok=reenviada" : "error=envio"}`);
+  back(formData, sent ? "ok=reenviada" : "error=envio");
 }
 
 export async function cancelInvitation(formData: FormData) {
@@ -151,6 +148,39 @@ export async function cancelInvitation(formData: FormData) {
     .is("accepted_at", null);
   revalidatePath(PATH);
   redirect(PATH);
+}
+
+// ---------------------------------------------------------------------------
+// Access requests («Pide acceso», /registro). Approving creates a user invitation bound to
+// the email and sends it like an admin invitation.
+// ---------------------------------------------------------------------------
+
+export async function approveAccessRequest(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { token, hash } = newInvitationToken();
+  const { data: email, error } = await supabase.rpc("approve_access_request", {
+    p_id: target(formData),
+    p_token_hash: hash,
+  });
+  revalidatePath(PATH, "layout");
+  if (error || !email) back(formData, "error=1");
+
+  const sent = await sendInvitationEmail(
+    email,
+    `${await siteOrigin()}/invitacion/${token}`,
+  );
+  back(formData, sent ? "ok=aprobada" : "error=envio");
+}
+
+export async function rejectAccessRequest(formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reject_access_request", {
+    p_id: target(formData),
+  });
+  revalidatePath(PATH, "layout");
+  back(formData, error ? "error=1" : "");
 }
 
 // Sign-ups are disabled, so the account is created first (no-op if it exists) and then
@@ -166,7 +196,7 @@ async function sendInvitationEmail(
       email_confirm: true,
     });
   if (createError && createError.code !== "email_exists") {
-    console.error("inviteAdmin: createUser failed", createError);
+    console.error("sendInvitationEmail: createUser failed", createError);
     return false;
   }
   const mailer = createAnonClient(supabaseUrl, supabasePublishableKey, {
@@ -176,6 +206,6 @@ async function sendInvitationEmail(
     email,
     options: { shouldCreateUser: false, emailRedirectTo: url },
   });
-  if (error) console.error("inviteAdmin: signInWithOtp failed", error);
+  if (error) console.error("sendInvitationEmail: signInWithOtp failed", error);
   return !error;
 }

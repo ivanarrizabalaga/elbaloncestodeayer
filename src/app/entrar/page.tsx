@@ -43,7 +43,11 @@ export default async function SignInPage({
           <p className="font-semibold">Revisa tu correo</p>
           <p className="text-muted">
             Si ese email tiene cuenta, te acabamos de enviar un enlace para
-            entrar. Mira también en la carpeta de spam.
+            entrar. Mira también en la carpeta de spam. Si aún no tienes cuenta,{" "}
+            <Link href="/registro" className="text-accent underline">
+              pide acceso
+            </Link>
+            .
           </p>
           <Link href="/entrar" className="mt-2 w-fit text-accent underline">
             Usar otro email
@@ -80,7 +84,11 @@ export default async function SignInPage({
           </button>
           <p className="text-sm text-muted">
             ¿Aún no tienes cuenta? Se entra por invitación: cuando alguien te
-            etiquete en una foto, te llegará un enlace.
+            etiquete en una foto, te llegará un enlace. Si no,{" "}
+            <Link href="/registro" className="text-accent underline">
+              pide acceso
+            </Link>
+            .
           </p>
         </form>
       )}
