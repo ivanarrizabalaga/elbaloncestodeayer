@@ -805,6 +805,21 @@ export type Database = {
         };
         Returns: undefined;
       };
+      update_own_proposal: {
+        Args: {
+          p_competition: string;
+          p_photo_id: string;
+          p_photographer: string;
+          p_provenance: string;
+          p_season_label: string;
+          p_story: string;
+          p_team: string;
+          p_venue: string;
+          p_year_from?: number;
+          p_year_to?: number;
+        };
+        Returns: undefined;
+      };
       withdraw_own_photo: { Args: { p_photo_id: string }; Returns: string };
     };
     Enums: {

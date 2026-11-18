@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { parseSeason } from "@/lib/photos";
+import { readPhotoDetails } from "@/lib/photo-details";
 import { createPerson, nextLabelNumber } from "@/lib/people";
 import { firstPublishFields } from "@/lib/publish";
 import { withdrawnByContributor } from "@/lib/review";
@@ -69,8 +69,7 @@ export async function savePhoto(formData: FormData) {
     return value === "" ? null : value;
   };
 
-  const seasonLabel = text("season_label");
-  const { yearFrom, yearTo } = parseSeason(seasonLabel ?? "");
+  const details = readPhotoDetails((name) => formData.get(name));
   const instagramUrl = text("instagram_url");
   if (
     instagramUrl &&
@@ -86,17 +85,8 @@ export async function savePhoto(formData: FormData) {
     .maybeSingle();
   if (!photo) redirect("/admin/subir");
 
-  const team = text("team");
   const changes = {
-    season_label: seasonLabel,
-    year_from: yearFrom,
-    year_to: yearTo,
-    team,
-    venue: text("venue"),
-    competition: text("competition"),
-    provenance: text("provenance"),
-    photographer: text("photographer"),
-    story: text("story"),
+    ...details,
     instagram_url: instagramUrl,
     featured: formData.get("featured") === "on",
   };
@@ -116,7 +106,7 @@ export async function savePhoto(formData: FormData) {
   } else if (publishing) {
     publishFields = await firstPublishFields(
       supabase,
-      { team, season_label: seasonLabel },
+      { team: details.team, season_label: details.season_label },
       admin.id,
     );
   }
