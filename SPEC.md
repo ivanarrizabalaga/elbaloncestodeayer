@@ -68,7 +68,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Person page | `/persona/[slug]` | `Persona.dc.html` | Name, face crop, «Sale con», photos by season, share, invite |
 | Invitation | `/invitacion/[token]` | `Invitacion.dc.html` | Arrives via link (WhatsApp): «¿Eres tú?» → email → magic link → signed in. Also «No soy yo» |
 | Request access | `/registro` | _(no mockup)_ | Name, email and «Tengo 14 años o más»; linked from `/entrar`. Same answer whether or not the email already has an account |
-| Propose photos | `/proponer` | _(no mockup)_ | Users upload photos for review; «Tus fotos» with status and «Retirar esta foto» |
+| Propose photos | `/proponer` | _(no mockup)_ | Users upload photos for review; «Tus fotos»: one list, pending first, each row with a title (team and season, else the uploaded file's name), a status pill and its action (*Retirar*, *Ver foto*, *Quitar de la lista*) |
 | Withdrawal request | `/foto/[slug]/retirar` | _(no mockup)_ | Reason and optional contact; the contributor withdraws directly instead |
 | My account | `/cuenta` | _(no mockup)_ | Change the display name, link to your person and photos, sign out, delete the account |
 | Privacy | `/privacidad` | _(no mockup)_ | What is stored, where, and how to change or delete it (§11) |
@@ -109,7 +109,8 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - `team`, `venue`, `competition` (free text with autocomplete from existing values; normalise later only if needed)
 - `provenance`, `photographer`, `story`, `instagram_url`, `featured` (the «foto de la semana» on the home page; only one at a time: featuring a photo unfeatures the previous one. With none featured, the home shows the latest published photo)
 - `storage_key`, `width`, `height`
-- `source_file`, `image_hash` (imported photos only: the file's path in the imported folder or export, and a perceptual hash to spot duplicates across imports, screenshots and resized copies)
+- `source_file`: for imported photos, the file's path in the imported folder or export; for proposed photos, the uploaded file's name (no `/`, so it never counts as a folder)
+- `image_hash`: a perceptual hash to spot duplicates across imports, proposals, screenshots and resized copies
 - `proposed_by`, `published_by`, `published_at`, `created_at`
 
 **tags** — one face in one photo
@@ -161,7 +162,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - Photos uploaded by admins on someone else's behalf (e.g. the Instagram import) have no `proposed_by`; they follow the normal withdrawal request.
 - Implemented as a `SECURITY DEFINER` function (`withdraw_own_photo`) in phase 5.
 
-**Proposing photos** — `/proponer`, for signed-in users who are not blocked. They upload one or more photos with an optional comment and confirm they may share them. Each photo is created as `proposed` with a `photo_proposal` item in the queue, and the user sees it under «Tus fotos». An admin opens it, completes the details, tags it and publishes it, which resolves the item; or rejects it, which deletes the files and keeps the row as `rejected` so the user sees the outcome. Limit: 30 photos per user per day.
+**Proposing photos** — `/proponer`, for signed-in users who are not blocked. They upload one or more photos with an optional comment and confirm they may share them. Each photo is created as `proposed` with a `photo_proposal` item in the queue, and the user sees it under «Tus fotos». An admin opens it, completes the details, tags it and publishes it, which resolves the item; or rejects it, which deletes the files and keeps the row as `rejected` so the user sees the outcome: «No publicada», named by its file (there is no thumbnail any more), with a line pointing to the contact email and *Quitar de la lista*, which deletes the row. No rejection reason for now. Limit: 30 photos per user per day.
 
 **Withdrawal request** — `/foto/[slug]/retirar`, linked from every photo page. The form asks for a reason (required) and, optionally, a name (visitors only) and an email or phone to reply to, which only admins see. The contributor of the photo sees «Retirar esta foto» there instead and takes it down at once. Admins can also withdraw a published photo from its editor, which resolves open withdrawal requests for it, and publish it again later with the same address. A photo its contributor took down cannot be republished from the admin pages.
 

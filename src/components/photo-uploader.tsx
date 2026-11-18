@@ -39,7 +39,7 @@ export function PhotoUploader({
   similarLabel = "Parecida a:",
 }: {
   start: (file: { type: string; size: number }) => Promise<Started>;
-  finish: (id: string, comment: string) => Promise<Finished>;
+  finish: (id: string, comment: string, fileName: string) => Promise<Finished>;
   doneLabel: string;
   // Optional fields shown above the drop zone.
   comment?: { label: string; placeholder: string };
@@ -95,7 +95,7 @@ export function PhotoUploader({
         }
 
         update(item.key, { status: "processing" });
-        const finished = await finish(started.id, note.trim());
+        const finished = await finish(started.id, note.trim(), file.name);
         update(
           item.key,
           finished.ok

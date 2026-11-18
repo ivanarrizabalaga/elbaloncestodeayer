@@ -1,6 +1,9 @@
 import "server-only";
 import { headers } from "next/headers";
 
+// The archive's public contact (forwarded to its Gmail, SPEC §11).
+export const CONTACT_EMAIL = "hola@elbaloncestodeayer.com";
+
 // Absolute URL of this deployment, for share links (works locally, on previews and in production).
 export async function siteOrigin(): Promise<string> {
   const h = await headers();

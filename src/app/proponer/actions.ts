@@ -56,10 +56,18 @@ export async function startProposal(file: {
 export async function finishProposal(
   id: string,
   comment: string,
+  fileName: string,
 ): Promise<ProposalResult> {
   const allowed = await canPropose();
   if (!allowed.ok) return allowed;
   if (!UUID.test(id)) return { ok: false, error: "Subida no válida." };
+  // Shown in «Tus fotos» while the photo has no team. No «/», so it never counts as an
+  // imported folder (draft_folders).
+  const sourceFile =
+    String(fileName ?? "")
+      .replace(/[/\\]/g, "_")
+      .trim()
+      .slice(0, 200) || null;
 
   const supabase = await createClient();
   try {
@@ -74,6 +82,7 @@ export async function finishProposal(
       width,
       height,
       image_hash: imageHash,
+      source_file: sourceFile,
     });
     if (error) throw new Error(error.message);
   } catch (error) {
