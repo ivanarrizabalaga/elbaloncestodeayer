@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createPerson } from "@/lib/people";
+import { firstPublishFields } from "@/lib/publish";
 import { payloadText } from "@/lib/review";
 import { fold } from "@/lib/slug";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
@@ -247,6 +248,35 @@ async function findPersonByName(
     .is("merged_into", null);
   const wanted = fold(name);
   return data?.find((p) => fold(p.full_name) === wanted)?.id ?? null;
+}
+
+// «Publicar» straight from the queue, with the details the proposer gave (shown on the
+// card). To change anything first, the admin uses «Revisar» (/admin/fotos/[id]).
+export async function publishProposal(formData: FormData) {
+  const admin = await requireAdmin();
+  const { supabase, items } = await openItems(ids(formData));
+  const item = items[0];
+  if (item.kind !== "photo_proposal" || !item.photo_id) fail();
+
+  const { data: current } = await supabase
+    .from("photos")
+    .select("team, season_label")
+    .eq("id", item.photo_id)
+    .eq("status", "proposed")
+    .maybeSingle();
+  if (!current) fail();
+
+  const { data: photo } = await supabase
+    .from("photos")
+    .update(await firstPublishFields(supabase, current, admin.id))
+    .eq("id", item.photo_id)
+    .eq("status", "proposed")
+    .select("id")
+    .maybeSingle();
+  if (!photo) fail();
+
+  await close([item.id], "resolved", admin.id);
+  revalidatePath(PATH);
 }
 
 // Proposed photo not accepted: the files are deleted and the row stays as 'rejected' (without

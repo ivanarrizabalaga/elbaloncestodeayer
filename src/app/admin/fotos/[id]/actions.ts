@@ -1,7 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { parseSeason } from "@/lib/photos";
+import { redirect, RedirectType } from "next/navigation";
+import { readPhotoDetails } from "@/lib/photo-details";
 import { createPerson, nextLabelNumber } from "@/lib/people";
 import { firstPublishFields } from "@/lib/publish";
 import { withdrawnByContributor } from "@/lib/review";
@@ -69,14 +69,13 @@ export async function savePhoto(formData: FormData) {
     return value === "" ? null : value;
   };
 
-  const seasonLabel = text("season_label");
-  const { yearFrom, yearTo } = parseSeason(seasonLabel ?? "");
+  const details = readPhotoDetails((name) => formData.get(name));
   const instagramUrl = text("instagram_url");
   if (
     instagramUrl &&
     !/^https:\/\/(www\.)?instagram\.com\//.test(instagramUrl)
   ) {
-    redirect(`/admin/fotos/${id}?error=instagram`);
+    redirect(`/admin/fotos/${id}?error=instagram`, RedirectType.replace);
   }
 
   const { data: photo } = await supabase
@@ -86,17 +85,8 @@ export async function savePhoto(formData: FormData) {
     .maybeSingle();
   if (!photo) redirect("/admin/subir");
 
-  const team = text("team");
   const changes = {
-    season_label: seasonLabel,
-    year_from: yearFrom,
-    year_to: yearTo,
-    team,
-    venue: text("venue"),
-    competition: text("competition"),
-    provenance: text("provenance"),
-    photographer: text("photographer"),
-    story: text("story"),
+    ...details,
     instagram_url: instagramUrl,
     featured: formData.get("featured") === "on",
   };
@@ -105,7 +95,7 @@ export async function savePhoto(formData: FormData) {
   // come back, with the address it already had.
   const republishing = intent === "publish" && photo.status === "withdrawn";
   if (republishing && (await withdrawnByContributor(supabase, id))) {
-    redirect(`/admin/fotos/${id}?error=retirada`);
+    redirect(`/admin/fotos/${id}?error=retirada`, RedirectType.replace);
   }
   const publishing =
     intent === "publish" &&
@@ -116,7 +106,7 @@ export async function savePhoto(formData: FormData) {
   } else if (publishing) {
     publishFields = await firstPublishFields(
       supabase,
-      { team, season_label: seasonLabel },
+      { team: details.team, season_label: details.season_label },
       admin.id,
     );
   }
@@ -125,7 +115,7 @@ export async function savePhoto(formData: FormData) {
     .from("photos")
     .update({ ...changes, ...publishFields })
     .eq("id", id);
-  if (error) redirect(`/admin/fotos/${id}?error=guardar`);
+  if (error) redirect(`/admin/fotos/${id}?error=guardar`, RedirectType.replace);
 
   // A published proposal leaves the review queue.
   if (publishing && photo.status === "proposed") {
@@ -143,6 +133,7 @@ export async function savePhoto(formData: FormData) {
 
   redirect(
     `/admin/fotos/${id}?ok=${publishing || republishing ? "publicada" : "guardada"}`,
+    RedirectType.replace,
   );
 }
 
@@ -160,7 +151,8 @@ export async function withdrawPhoto(formData: FormData) {
     .eq("status", "published")
     .select("id")
     .maybeSingle();
-  if (!photo) redirect(`/admin/fotos/${id}?error=guardar`);
+  if (!photo)
+    redirect(`/admin/fotos/${id}?error=guardar`, RedirectType.replace);
 
   await supabase
     .from("review_items")
@@ -173,7 +165,7 @@ export async function withdrawPhoto(formData: FormData) {
     .eq("kind", "removal_request")
     .eq("status", "open");
 
-  redirect(`/admin/fotos/${id}?ok=retirada`);
+  redirect(`/admin/fotos/${id}?ok=retirada`, RedirectType.replace);
 }
 
 function inUnitRange(n: number): boolean {

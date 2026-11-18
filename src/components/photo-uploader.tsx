@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 type Item = {
   key: string;
@@ -28,6 +28,14 @@ type Started =
 type Finished =
   { ok: true; similar?: Similar[] } | { ok: false; error: string };
 
+// What `finish` gets besides the upload id.
+export type UploadMeta = {
+  comment: string;
+  fileName: string;
+  // The «datos comunes» fields, by name (empty when the uploader has none).
+  details: Record<string, string>;
+};
+
 // Uploads one file at a time: sign → PUT straight to R2 → process on the server.
 // Admins upload drafts; users propose photos, with a comment and a rights confirmation.
 export function PhotoUploader({
@@ -36,13 +44,16 @@ export function PhotoUploader({
   doneLabel,
   comment,
   confirm,
+  details,
   similarLabel = "Parecida a:",
 }: {
   start: (file: { type: string; size: number }) => Promise<Started>;
-  finish: (id: string, comment: string) => Promise<Finished>;
+  finish: (id: string, meta: UploadMeta) => Promise<Finished>;
   doneLabel: string;
   // Optional fields shown above the drop zone.
   comment?: { label: string; placeholder: string };
+  // Optional details applied to every photo of the batch, in a collapsed section.
+  details?: ReactNode;
   confirm?: string;
   // Heading of the «looks like a photo already there» notice under a finished file.
   similarLabel?: string;
@@ -51,6 +62,7 @@ export function PhotoUploader({
   const [items, setItems] = useState<Item[]>([]);
   const [dragging, setDragging] = useState(false);
   const [note, setNote] = useState("");
+  const detailsForm = useRef<HTMLFormElement>(null);
   const [confirmed, setConfirmed] = useState(!confirm);
   const busy = items.some(
     (i) => i.status === "uploading" || i.status === "processing",
@@ -71,6 +83,14 @@ export function PhotoUploader({
       },
     }));
     setItems((all) => [...queued.map((q) => q.item), ...all]);
+    const shared = detailsForm.current
+      ? Object.fromEntries(
+          [...new FormData(detailsForm.current)].map(([k, v]) => [
+            k,
+            String(v),
+          ]),
+        )
+      : {};
 
     for (const { file, item } of queued) {
       try {
@@ -95,7 +115,11 @@ export function PhotoUploader({
         }
 
         update(item.key, { status: "processing" });
-        const finished = await finish(started.id, note.trim());
+        const finished = await finish(started.id, {
+          comment: note.trim(),
+          fileName: file.name,
+          details: shared,
+        });
         update(
           item.key,
           finished.ok
@@ -114,6 +138,24 @@ export function PhotoUploader({
 
   return (
     <div className="flex flex-col gap-4">
+      {details && (
+        <details className="rounded-lg border border-line-strong">
+          <summary className="flex min-h-11 cursor-pointer items-center px-4 text-sm font-semibold">
+            Datos comunes a estas fotos (opcional)
+          </summary>
+          <form
+            ref={detailsForm}
+            onSubmit={(event) => event.preventDefault()}
+            className="flex flex-col gap-4 px-4 pb-4"
+          >
+            <p className="text-sm text-muted">
+              Si son todas del mismo partido o temporada, rellénalo aquí y se
+              aplica a cada una. Luego puedes cambiar cada foto en «Tus fotos».
+            </p>
+            {details}
+          </form>
+        </details>
+      )}
       {comment && (
         <label className="flex flex-col gap-2 text-sm text-muted">
           {comment.label}

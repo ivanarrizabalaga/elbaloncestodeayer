@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CONTACT_EMAIL as CONTACT } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacidad",
@@ -10,7 +11,6 @@ export const metadata: Metadata = {
 
 // SPEC §11. Plain content: no data loading.
 // The controller's real name is not in the repo (it is public): it comes from the environment.
-const CONTACT = "hola@elbaloncestodeayer.com";
 
 export default function PrivacyPage() {
   const controller = process.env.PRIVACY_CONTROLLER_NAME;

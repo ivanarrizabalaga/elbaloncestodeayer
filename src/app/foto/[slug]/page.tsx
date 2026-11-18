@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BackLink } from "@/components/back-link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { PhotoGrid } from "@/components/photo-grid";
@@ -222,9 +223,10 @@ export default async function PhotoPage({
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 pt-6 sm:px-6">
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3">
-          {/* Back to the gallery, with the filters it was opened from (if any). */}
-          <Link
-            href={withQuery("/", listQuery)}
+          {/* Back to the previous page (gallery, person, admin…); arriving from outside, to the
+              gallery with the filters it was opened from (if any). */}
+          <BackLink
+            fallback={withQuery("/", listQuery)}
             className="-ml-1 inline-flex min-h-11 items-center gap-1 pr-2 text-sm text-muted hover:text-fg"
           >
             <svg
@@ -239,8 +241,8 @@ export default async function PhotoPage({
             >
               <path d="M15 6l-6 6 6 6" />
             </svg>
-            Volver a las fotos
-          </Link>
+            Volver
+          </BackLink>
           {user?.isAdmin && published && <EditPhotoLink id={photo.id} />}
         </div>
 

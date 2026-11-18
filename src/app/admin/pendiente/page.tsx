@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+import { ConfirmButton } from "@/components/confirm-button";
 import { FaceCrop } from "@/components/face-crop";
 import { photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, reviewGroupKey } from "@/lib/review";
@@ -12,6 +13,7 @@ import {
   acceptSuggestion,
   clearDisputedTag,
   dismissItems,
+  publishProposal,
   rejectProposal,
   resolveItems,
   takeItems,
@@ -34,6 +36,9 @@ const TABS = [
 ] as const;
 
 const PHOTO = "slug, team, season_label, storage_key";
+// What a proposer may have filled in, shown on the proposal card.
+const DETAILS =
+  "venue, competition, provenance, photographer, story, source_file";
 
 export default async function PendingPage({
   searchParams,
@@ -49,7 +54,7 @@ export default async function PendingPage({
       .select(
         `id, kind, priority, payload, tag_id, person_id, photo_id, created_by, assigned_to, created_at,
          person:people(full_name),
-         photo:photos(id, ${PHOTO}),
+         photo:photos(id, ${PHOTO}, ${DETAILS}),
          tag:tags(x, y, label_number, removed_at, current:people(full_name), photo:photos(${PHOTO}))`,
       )
       .eq("status", "open")
@@ -257,7 +262,17 @@ type Row = {
   payload: unknown;
   created_by: string | null;
   person: { full_name: string } | null;
-  photo: (PhotoRef & { id: string }) | null;
+  photo:
+    | (PhotoRef & {
+        id: string;
+        venue: string | null;
+        competition: string | null;
+        provenance: string | null;
+        photographer: string | null;
+        story: string | null;
+        source_file: string | null;
+      })
+    | null;
   tag: {
     x: number;
     y: number;
@@ -274,6 +289,8 @@ type Group = {
   latest: string;
 };
 type Action = (formData: FormData) => Promise<void>;
+// Destructive actions ask first: [title, body, confirm label].
+type Confirm = [string, string, string];
 
 function ReviewCard({
   group,
@@ -330,27 +347,41 @@ function ReviewCard({
             </>
           )}
         </p>
+        {card.extra}
         <form className="mt-1.5 flex flex-wrap items-center gap-2">
           <input
             type="hidden"
             name="ids"
             value={rows.map((r) => r.id).join(",")}
           />
-          {card.actions.map(([label, action], i) => (
-            <button
-              key={label}
-              type="submit"
-              formAction={action}
-              className={`inline-flex h-11 items-center rounded-full px-4 text-[13px] ${
-                i === 0 && !card.link
-                  ? "bg-accent font-semibold text-on-accent"
-                  : "border border-line-strong font-medium"
-              }`}
-            >
-              {label}
-            </button>
+          {card.actions.map(([label, action, confirm], i) => (
+            <Fragment key={label}>
+              {confirm ? (
+                <ConfirmButton
+                  compact
+                  label={label}
+                  title={confirm[0]}
+                  body={confirm[1]}
+                  confirmLabel={confirm[2]}
+                  action={action}
+                />
+              ) : (
+                <button
+                  type="submit"
+                  formAction={action}
+                  className={`inline-flex h-11 items-center rounded-full px-4 text-[13px] ${
+                    i === 0
+                      ? "bg-accent font-semibold text-on-accent"
+                      : "border border-line-strong font-medium"
+                  }`}
+                >
+                  {label}
+                </button>
+              )}
+              {/* A link right after the main action (e.g. «Revisar»). */}
+              {i === 0 && card.link}
+            </Fragment>
           ))}
-          {card.link}
           <span className="flex-1" />
           {assignee ? (
             <span className="inline-flex items-center gap-1.5 text-[13px] text-[#c8c8c8]">
@@ -388,8 +419,9 @@ function describe(
   type: string;
   title: string;
   detail: string;
-  actions: [string, Action][];
+  actions: [string, Action, Confirm?][];
   link?: ReactNode;
+  extra?: ReactNode;
 } {
   switch (item.kind) {
     case "name_suggestion": {
@@ -460,16 +492,27 @@ function describe(
       return {
         type: "Foto propuesta",
         title: `${who} ${plural ? "han" : "ha"} propuesto una foto`,
-        detail: comment
-          ? `Comentario: «${comment}». Ábrela para completar los datos, etiquetar y publicar.`
-          : "Sin comentario. Ábrela para completar los datos, etiquetar y publicar.",
-        actions: [["Rechazar", rejectProposal]],
+        detail: comment ? `Comentario: «${comment}».` : "Sin comentario.",
+        extra: item.photo && <ProposalDetails photo={item.photo} />,
+        // «Publicar» as it is; «Revisar» to change details or tag faces first.
+        actions: [
+          ["Publicar", publishProposal],
+          [
+            "Rechazar",
+            rejectProposal,
+            [
+              "¿Rechazar esta foto?",
+              "Se borran los archivos y no se publica. Quien la propuso la verá como «No publicada» en sus fotos. No se puede deshacer.",
+              "Sí, rechazar",
+            ],
+          ],
+        ],
         link: item.photo && (
           <Link
             href={`/admin/fotos/${item.photo.id}`}
-            className="order-first inline-flex h-11 items-center rounded-full bg-accent px-4 text-[13px] font-semibold text-on-accent"
+            className="inline-flex h-11 items-center rounded-full border border-line-strong px-4 text-[13px] font-medium"
           >
-            Revisar y publicar
+            Revisar
           </Link>
         ),
       };
@@ -485,6 +528,50 @@ function describe(
         ],
       };
   }
+}
+
+// The details the proposer gave, so the admin can publish without leaving the queue.
+function ProposalDetails({ photo }: { photo: NonNullable<Row["photo"]> }) {
+  const rows = (
+    [
+      ["Temporada", photo.season_label],
+      ["Equipo", photo.team],
+      ["Pabellón", photo.venue],
+      ["Competición", photo.competition],
+      ["Procedencia", photo.provenance],
+      ["Autor", photo.photographer],
+    ] as const
+  ).filter(([, value]) => value);
+  if (rows.length === 0 && !photo.story) {
+    return (
+      <p className="text-sm text-muted">
+        Sin datos{photo.source_file ? ` (archivo «${photo.source_file}»)` : ""}:
+        revísala para completarlos antes de publicar.
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1 text-sm">
+      {rows.length > 0 && (
+        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
+          {rows.map(([label, value]) => (
+            <Fragment key={label}>
+              <dt className="text-muted">{label}</dt>
+              <dd className="break-words">{value}</dd>
+            </Fragment>
+          ))}
+        </dl>
+      )}
+      {photo.story && (
+        <details>
+          <summary className="inline-flex min-h-11 cursor-pointer items-center text-accent">
+            Leer la historia
+          </summary>
+          <p className="whitespace-pre-line text-muted">{photo.story}</p>
+        </details>
+      )}
+    </div>
+  );
 }
 
 function Thumb({ item, photo }: { item: Row; photo: PhotoRef | null }) {

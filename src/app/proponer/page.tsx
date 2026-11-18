@@ -1,27 +1,37 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
+import { ConfirmButton } from "@/components/confirm-button";
+import { PhotoDetailsFields } from "@/components/photo-details-fields";
 import { PhotoUploader } from "@/components/photo-uploader";
+import { loadDetailSuggestions } from "@/lib/photo-details";
 import { photoLabel, photoSrc } from "@/lib/photos";
+import { CONTACT_EMAIL } from "@/lib/site";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { WithdrawOwnPhoto } from "@/components/withdraw-own-photo";
-import { finishProposal, startProposal } from "./actions";
+import { timeAgo } from "@/lib/time";
+import { finishProposal, startProposal, withdrawOwnPhoto } from "./actions";
 
 export const metadata: Metadata = { title: "Proponer fotos" };
 
-const STATUS: Record<string, string> = {
-  proposed: "Pendiente de revisar",
-  draft: "Pendiente de revisar",
-  published: "Publicada",
-  rejected: "No se ha publicado",
-  withdrawn: "Retirada",
+// «Tus fotos»: one list, pending first, each with a status pill. [label, pill style, order]
+const STATUS: Record<string, [string, string, number]> = {
+  proposed: ["Pendiente", "bg-surface-3 text-muted", 0],
+  draft: ["Pendiente", "bg-surface-3 text-muted", 0],
+  published: ["Publicada", "bg-surface-3 text-accent", 1],
+  rejected: ["No publicada", "border border-line-strong text-muted", 2],
+  withdrawn: ["Retirada", "border border-line-strong text-muted", 3],
 };
+
+const BUTTON =
+  "inline-flex h-11 items-center rounded-full border border-line-strong px-4 text-[13px] font-semibold";
 
 const NOTICES: Record<string, string> = {
   borrada: "Foto borrada. No queda nada de ella en el archivo.",
   retirada:
     "Foto retirada. Ya no se ve en la web; las etiquetas y los recuerdos se guardan ocultos.",
   error: "No se pudo retirar la foto. Inténtalo otra vez.",
+  datos: "Datos guardados. Un admin los revisará al publicar la foto.",
 };
 
 export default async function ProposePage({
@@ -30,15 +40,23 @@ export default async function ProposePage({
   const user = await getCurrentUser();
   if (!user) redirect("/entrar");
   if (user.isAdmin) redirect("/admin/subir");
-  const { retirada } = await searchParams;
-  const notice = typeof retirada === "string" ? NOTICES[retirada] : undefined;
+  const { aviso } = await searchParams;
+  const notice = typeof aviso === "string" ? NOTICES[aviso] : undefined;
 
   const supabase = await createClient();
-  const { data: photos } = await supabase
-    .from("photos")
-    .select("id, slug, status, team, season_label, storage_key, created_at")
-    .eq("proposed_by", user.id)
-    .order("created_at", { ascending: false });
+  const [{ data: photos }, suggestions] = await Promise.all([
+    supabase
+      .from("photos")
+      .select(
+        "id, slug, status, team, season_label, storage_key, source_file, created_at",
+      )
+      .eq("proposed_by", user.id)
+      .order("created_at", { ascending: false }),
+    loadDetailSuggestions(supabase),
+  ]);
+  const sorted = (photos ?? []).sort(
+    (a, b) => (STATUS[a.status]?.[2] ?? 9) - (STATUS[b.status]?.[2] ?? 9),
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 pt-8 sm:px-6">
@@ -54,7 +72,7 @@ export default async function ProposePage({
 
       {notice && (
         <p
-          role={retirada === "error" ? "alert" : "status"}
+          role={aviso === "error" ? "alert" : "status"}
           className="rounded-lg bg-surface-2 px-4 py-3"
         >
           {notice}
@@ -72,10 +90,11 @@ export default async function ProposePage({
           finish={finishProposal}
           doneLabel="Enviada: la revisaremos pronto"
           similarLabel="Parece que ya está en el archivo (si es la misma, puedes retirarla abajo):"
+          details={<PhotoDetailsFields suggestions={suggestions} />}
           comment={{
-            label: "¿Qué sabes de estas fotos? (opcional)",
+            label: "Algo más para los admins (opcional)",
             placeholder:
-              "Equipo, temporada, dónde se hizo, quién sale, de quién es la foto…",
+              "Quién sale, cualquier cosa que no encaje en los datos…",
           }}
           confirm="Las fotos son mías o tengo permiso para compartirlas, no sale nadie que hoy sea menor de edad (salvo con permiso de sus padres) y acepto que se publiquen en el archivo."
         />
@@ -88,59 +107,144 @@ export default async function ProposePage({
         >
           Tus fotos
         </h2>
-        {!photos?.length ? (
+        {sorted.length === 0 ? (
           <p className="text-muted">Todavía no has propuesto ninguna.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {photos.map((photo) => (
-              <li
-                key={photo.id}
-                className="flex items-start gap-4 rounded-lg bg-surface p-3"
-              >
-                {photo.storage_key ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={photoSrc(photo.storage_key, "thumb")}
-                    alt=""
-                    className="h-[66px] w-[88px] flex-none rounded-md object-cover"
-                  />
-                ) : (
-                  <span
-                    aria-hidden="true"
-                    className="h-[66px] w-[88px] flex-none rounded-md bg-surface-3"
-                  />
-                )}
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="font-medium">
-                    {photo.status === "published" ? (
-                      <Link
-                        href={`/foto/${photo.slug}`}
-                        className="underline-offset-4 hover:underline"
-                      >
-                        {photoLabel(photo)}
-                      </Link>
-                    ) : (
-                      (photo.team ?? "Foto propuesta")
-                    )}
-                  </span>
-                  <span
-                    className={`text-sm ${photo.status === "published" ? "text-accent" : "text-muted"}`}
-                  >
-                    {STATUS[photo.status] ?? photo.status}
-                  </span>
-                  {photo.status !== "withdrawn" &&
-                    photo.status !== "rejected" && (
-                      <WithdrawOwnPhoto
-                        id={photo.id}
-                        published={photo.status === "published"}
-                      />
-                    )}
-                </div>
-              </li>
+            {sorted.map((photo) => (
+              <OwnPhoto key={photo.id} photo={photo} />
             ))}
           </ul>
         )}
       </section>
     </main>
+  );
+}
+
+type Own = {
+  id: string;
+  slug: string;
+  status: string;
+  team: string | null;
+  season_label: string | null;
+  storage_key: string | null;
+  source_file: string | null;
+  created_at: string;
+};
+
+function OwnPhoto({ photo }: { photo: Own }) {
+  const [label, pill] = STATUS[photo.status] ?? [photo.status, "", 9];
+  // Team and season when an admin has filled them in; otherwise the uploaded file's name.
+  const title = photo.team
+    ? photoLabel(photo)
+    : (photo.source_file ?? "Foto sin datos");
+
+  // «hace 3 días», «ayer» or, after a month, «el 12 nov 2026».
+  const ago = timeAgo(photo.created_at);
+  const uploaded = /^\d/.test(ago) ? `el ${ago}` : ago;
+
+  let actions: ReactNode = null;
+  if (photo.status === "published") {
+    actions = (
+      <>
+        <Link href={`/foto/${photo.slug}`} className={BUTTON}>
+          Ver foto
+        </Link>
+        <ConfirmButton
+          compact
+          label="Retirar"
+          title="¿Retirar esta foto?"
+          body="Dejará de verse en la web al momento. Las etiquetas y los recuerdos de otros se guardan, ocultos."
+          confirmLabel="Sí, retirarla"
+          action={withdrawOwnPhoto}
+        />
+      </>
+    );
+  } else if (photo.status === "proposed") {
+    actions = (
+      <>
+        <Link href={`/proponer/${photo.id}`} className={BUTTON}>
+          {photo.team || photo.season_label ? "Editar datos" : "Añadir datos"}
+        </Link>
+        <ConfirmButton
+          compact
+          label="Retirar"
+          title="¿Retirar esta foto?"
+          body="Se borrará del todo, sin pasar por revisión."
+          confirmLabel="Sí, retirarla"
+          action={withdrawOwnPhoto}
+        />
+      </>
+    );
+  } else if (photo.status === "draft") {
+    actions = (
+      <ConfirmButton
+        compact
+        label="Retirar"
+        title="¿Retirar esta foto?"
+        body="Se borrará del todo, sin pasar por revisión."
+        confirmLabel="Sí, retirarla"
+        action={withdrawOwnPhoto}
+      />
+    );
+  } else if (photo.status === "rejected") {
+    // The files are already gone: this only removes the row.
+    actions = (
+      <button type="submit" formAction={withdrawOwnPhoto} className={BUTTON}>
+        Quitar de la lista
+      </button>
+    );
+  }
+
+  return (
+    <li className="flex gap-3 rounded-lg bg-surface p-3">
+      {photo.storage_key ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photoSrc(photo.storage_key, "thumb")}
+          alt=""
+          className="h-[66px] w-[88px] flex-none rounded-md object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="h-[66px] w-[88px] flex-none rounded-md bg-surface-3"
+        />
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="truncate font-medium" title={title}>
+            {title}
+          </span>
+          <span className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            <span
+              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${pill}`}
+            >
+              {label}
+            </span>
+            Subida {uploaded}
+          </span>
+          {photo.status === "rejected" && (
+            <p className="text-sm text-muted">
+              Puede que estuviera repetida o que no encajara en el archivo. Si
+              tienes dudas, escríbenos a{" "}
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="text-accent underline"
+              >
+                {CONTACT_EMAIL}
+              </a>
+              .
+            </p>
+          )}
+        </div>
+        {actions && (
+          <form className="flex flex-none flex-wrap items-center gap-2">
+            <input type="hidden" name="id" value={photo.id} />
+            {actions}
+          </form>
+        )}
+      </div>
+    </li>
   );
 }

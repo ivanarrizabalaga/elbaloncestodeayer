@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { discardDrafts } from "@/app/admin/subir/actions";
+import { BackLink } from "@/components/back-link";
 import { ConfirmButton } from "@/components/confirm-button";
 import { LookalikeList } from "@/components/lookalike-list";
+import { Field, PhotoDetailsFields } from "@/components/photo-details-fields";
 import { loadLookalikes } from "@/lib/lookalikes";
 import { loadPersonOptions } from "@/lib/people";
+import { loadDetailSuggestions } from "@/lib/photo-details";
 import { PHOTO_STATUS_LABEL, photoLabel, photoSrc } from "@/lib/photos";
 import { payloadText, withdrawnByContributor } from "@/lib/review";
 import { createClient } from "@/lib/supabase/server";
@@ -46,7 +49,7 @@ export default async function EditPhotoPage({
     notFound();
   }
 
-  const [{ data: tags }, personOptions, { data: values }, lookalikes] =
+  const [{ data: tags }, personOptions, suggestions, lookalikes] =
     await Promise.all([
       supabase
         .from("tags")
@@ -55,15 +58,9 @@ export default async function EditPhotoPage({
         .is("removed_at", null)
         .order("label_number"),
       loadPersonOptions(supabase),
-      // Existing values, offered as suggestions so the same team is not spelt five ways.
-      supabase.from("photos").select("team, venue, competition, provenance"),
+      loadDetailSuggestions(supabase),
       loadLookalikes(supabase, [id]),
     ]);
-
-  const suggestions = (key: "team" | "venue" | "competition" | "provenance") =>
-    [...new Set((values ?? []).flatMap((v) => (v[key] ? [v[key]] : [])))].sort(
-      (a, b) => a.localeCompare(b, "es"),
-    );
 
   const published = photo.status === "published";
   // Only one photo of the week at a time (database trigger): say which one it replaces.
@@ -92,12 +89,12 @@ export default async function EditPhotoPage({
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-8 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <Link
-            href="/admin/subir"
+          <BackLink
+            fallback="/admin/subir"
             className="text-sm text-muted underline-offset-4 hover:text-fg hover:underline"
           >
-            ← Subir fotos y borradores
-          </Link>
+            ← Volver
+          </BackLink>
           <h1 className="font-display text-[40px] leading-none font-bold">
             {published ? "Editar foto" : "Etiquetar y publicar"}
           </h1>
@@ -168,55 +165,7 @@ export default async function EditPhotoPage({
           className="flex flex-col gap-4"
         >
           <input type="hidden" name="id" value={photo.id} />
-          <div className="grid grid-cols-2 gap-3">
-            <Field
-              label="Temporada o año"
-              name="season_label"
-              value={photo.season_label}
-              placeholder="1984–85"
-            />
-            <Field
-              label="Equipo"
-              name="team"
-              value={photo.team}
-              list={suggestions("team")}
-            />
-            <Field
-              label="Pabellón"
-              name="venue"
-              value={photo.venue}
-              list={suggestions("venue")}
-            />
-            <Field
-              label="Competición"
-              name="competition"
-              value={photo.competition}
-              placeholder="Liga, torneo…"
-              list={suggestions("competition")}
-            />
-          </div>
-          <Field
-            label="Procedencia"
-            name="provenance"
-            value={photo.provenance}
-            placeholder="Colección de…, aportada por…"
-            list={suggestions("provenance")}
-          />
-          <Field
-            label="Autor de la foto (si se sabe)"
-            name="photographer"
-            value={photo.photographer}
-          />
-          <label className="flex flex-col gap-1.5 text-sm text-muted">
-            La historia
-            <textarea
-              name="story"
-              rows={5}
-              defaultValue={photo.story ?? ""}
-              placeholder="El partido, la temporada, alguna anécdota…"
-              className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3 py-2 text-base text-fg"
-            />
-          </label>
+          <PhotoDetailsFields values={photo} suggestions={suggestions} />
           <Field
             label="Publicación en Instagram (opcional)"
             name="instagram_url"
@@ -295,44 +244,6 @@ export default async function EditPhotoPage({
         </form>
       </div>
     </main>
-  );
-}
-
-function Field({
-  label,
-  name,
-  value,
-  placeholder,
-  type = "text",
-  list,
-}: {
-  label: string;
-  name: string;
-  value: string | null;
-  placeholder?: string;
-  type?: string;
-  list?: string[];
-}) {
-  const listId = list?.length ? `${name}-options` : undefined;
-  return (
-    <label className="flex min-w-0 flex-col gap-1.5 text-sm text-muted">
-      {label}
-      <input
-        type={type}
-        name={name}
-        defaultValue={value ?? ""}
-        placeholder={placeholder}
-        list={listId}
-        className="h-11 min-w-0 rounded-lg border border-line-strong bg-[#1a1a1a] px-3 text-base text-fg"
-      />
-      {listId && (
-        <datalist id={listId}>
-          {list!.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
-      )}
-    </label>
   );
 }
 
