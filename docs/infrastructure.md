@@ -46,6 +46,7 @@ Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue
 
   `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is only used by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation (sign-ups are disabled).
 - `vercel.json`: functions region `dub1` and a daily cron (06:00 UTC) calling `/api/keep-alive`, which runs a light query so Supabase Free does not pause the project after a week of inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`.
+- Web Analytics enabled in the project (Analytics tab). The `<Analytics />` component in the root layout sends page views; it only reports on deployments, not in local dev.
 - Previews use the production database (there is only one Supabase project). Signing in does not work on previews: magic links always point to the production domain.
 
 ## Supabase

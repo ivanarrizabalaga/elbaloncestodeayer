@@ -22,8 +22,8 @@ export default function PrivacyPage() {
         </h1>
         <p className="text-muted">
           El baloncesto de ayer es un archivo sin ánimo de lucro, hecho por
-          aficionados. No hay publicidad, no vendemos nada y no rastreamos a
-          nadie.
+          aficionados. No hay publicidad, no vendemos nada y no te seguimos por
+          internet.
         </p>
       </div>
 
@@ -44,8 +44,10 @@ export default function PrivacyPage() {
 
       <Section title="Qué guardamos">
         <p>
-          <strong>Si solo miras las fotos,</strong> nada. No usamos analítica ni
-          cookies de seguimiento.
+          <strong>Si solo miras las fotos,</strong> nada que te identifique.
+          Contamos visitas con Vercel Web Analytics, que no usa cookies ni
+          guarda tu IP: solo vemos totales, como cuántas personas han visto cada
+          página y desde qué país.
         </p>
         <p>
           <strong>Si tienes cuenta,</strong> guardamos:
@@ -92,7 +94,10 @@ export default function PrivacyPage() {
       <Section title="Dónde están los datos">
         <ul className="ml-5 list-disc space-y-1">
           <li>Base de datos y cuentas: Supabase, en la UE (Irlanda).</li>
-          <li>La web: Vercel, con los servidores en Dublín.</li>
+          <li>
+            La web y el recuento de visitas: Vercel, con los servidores en
+            Dublín.
+          </li>
           <li>Las imágenes: Cloudflare R2, en la UE.</li>
           <li>Los correos de acceso: Resend.</li>
         </ul>
