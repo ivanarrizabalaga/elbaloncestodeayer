@@ -249,7 +249,7 @@ Each phase on its own branch with its own PR (larger phases may be split into se
 - Accounts are for people aged 14 or over (LOPDGDD art. 7), stated on the privacy page. Invited people are vouched for by whoever invites them; people who ask for access (`/registro`) must tick «Tengo 14 años o más», stored as `access_requests.age_confirmed_at`. No date of birth is asked for (data minimisation).
 - **Minors:** the archive is of old photos. Photos showing people who are minors **today** are not published without their parents' permission, and those people are never tagged by name. The proposal checkbox includes it; admins apply it when reviewing; a withdrawal request for a minor is always granted.
 - **Copy of your data (GDPR art. 15 / 20):** requested by email and answered within a month. No button: see §12.
-- No tracking cookies or invasive analytics.
+- No tracking cookies or invasive analytics. Visits are counted with Vercel Web Analytics (cookieless, no IP stored, aggregate only), stated on the privacy page.
 - The repo's MIT licence covers **only the code**; the photos belong to their authors or to whoever contributes them.
 
 ---
