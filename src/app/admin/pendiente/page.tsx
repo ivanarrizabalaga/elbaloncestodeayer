@@ -658,7 +658,7 @@ async function activityTargets(supabase: Client, activity: Entry[]) {
       ? supabase
           .from("tags")
           .select(
-            `id, removed_at, person:people(full_name), photo:photos(${PHOTO})`,
+            `id, removed_at, person:people(full_name, slug), photo:photos(${PHOTO})`,
           )
           .in("id", tagIds)
       : { data: [] },
@@ -671,7 +671,7 @@ async function activityTargets(supabase: Client, activity: Entry[]) {
     personIds.length
       ? supabase
           .from("people")
-          .select("id, full_name, claimed_by")
+          .select("id, full_name, slug, claimed_by")
           .in("id", personIds)
       : { data: [] },
   ]);
@@ -722,9 +722,14 @@ function ActivityRow({
       if (entry.action === "own_tag_removed") {
         text = "se quitó su etiqueta";
       } else {
-        text = tag?.person
-          ? `etiquetó a ${tag.person.full_name}`
-          : "marcó una cara sin identificar";
+        text = tag?.person ? (
+          <>
+            etiquetó a{" "}
+            <PersonLink slug={tag.person.slug} name={tag.person.full_name} />
+          </>
+        ) : (
+          "marcó una cara sin identificar"
+        );
         if (tag) undo = ["Deshacer", tag.removed_at !== null];
       }
       break;
@@ -755,14 +760,23 @@ function ActivityRow({
     case "person_claimed":
     case "invitation_accepted": {
       const person = targets.people.get(id);
-      const name = person?.full_name ?? "alguien";
+      const name = person ? (
+        <PersonLink slug={person.slug} name={person.full_name} />
+      ) : (
+        "alguien"
+      );
       const asAdmin = payloadText(entry.data, "role") === "admin";
       text =
-        entry.action === "person_claimed"
-          ? `dijo que es ${name}`
-          : !entry.target_id
-            ? `aceptó la invitación${asAdmin ? " como admin" : " y entró al archivo"}`
-            : `aceptó la invitación como ${name}${asAdmin ? " (admin)" : ""}`;
+        entry.action === "person_claimed" ? (
+          <>dijo que es {name}</>
+        ) : !entry.target_id ? (
+          `aceptó la invitación${asAdmin ? " como admin" : " y entró al archivo"}`
+        ) : (
+          <>
+            aceptó la invitación como {name}
+            {asAdmin ? " (admin)" : ""}
+          </>
+        );
       if (person) {
         undo = ["Desvincular", person.claimed_by !== entry.actor_id];
       }
@@ -794,6 +808,18 @@ function ActivityRow({
           </form>
         ))}
     </li>
+  );
+}
+
+// Name of a tagged person, linking to their page with all their photos.
+function PersonLink({ slug, name }: { slug: string; name: string }) {
+  return (
+    <Link
+      href={`/persona/${slug}`}
+      className="font-medium text-accent underline-offset-4 hover:underline"
+    >
+      {name}
+    </Link>
   );
 }
 

@@ -213,6 +213,7 @@ export default async function UsersPage({
           <Table
             head={[
               "Persona",
+              "Perfil en el archivo",
               "Estado",
               "Último acceso",
               "Revisiones",
@@ -223,6 +224,9 @@ export default async function UsersPage({
               <tr key={a.id} className="border-t border-line">
                 <Td>
                   <Who name={a.display_name} email={a.email} />
+                </Td>
+                <Td>
+                  <ProfileLink slug={a.person_slug} name={a.person_name} />
                 </Td>
                 <Td>
                   <Chip>Admin</Chip>
@@ -268,6 +272,7 @@ export default async function UsersPage({
                     </span>
                   </div>
                 </Td>
+                <Td>—</Td>
                 <Td>
                   <Chip muted>Invitación pendiente</Chip>
                 </Td>
@@ -339,16 +344,7 @@ export default async function UsersPage({
                     <Who name={u.display_name} email={u.email} />
                   </Td>
                   <Td>
-                    {u.person_slug ? (
-                      <Link
-                        href={`/persona/${u.person_slug}`}
-                        className="text-accent underline-offset-4 hover:underline"
-                      >
-                        {u.person_name}
-                      </Link>
-                    ) : (
-                      <span className="text-muted">No sale en las fotos</span>
-                    )}
+                    <ProfileLink slug={u.person_slug} name={u.person_name} />
                   </Td>
                   <Td>{u.invited_by_name ?? "—"}</Td>
                   <Td>{contributions(u)}</Td>
@@ -472,6 +468,25 @@ function Who({ name, email }: { name: string | null; email: string | null }) {
         <span className="text-xs text-muted">{email}</span>
       </div>
     </div>
+  );
+}
+
+function ProfileLink({
+  slug,
+  name,
+}: {
+  slug: string | null;
+  name: string | null;
+}) {
+  return slug ? (
+    <Link
+      href={`/persona/${slug}`}
+      className="text-accent underline-offset-4 hover:underline"
+    >
+      {name}
+    </Link>
+  ) : (
+    <span className="text-muted">No sale en las fotos</span>
   );
 }
 
