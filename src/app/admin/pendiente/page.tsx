@@ -651,7 +651,11 @@ async function activityTargets(supabase: Client, activity: Entry[]) {
   ];
   const tagIds = idsFor(["tag_added", "own_tag_removed"]);
   const memoryIds = idsFor(["memory_added"]);
-  const personIds = idsFor(["person_claimed", "invitation_accepted"]);
+  const personIds = idsFor([
+    "person_claimed",
+    "invitation_accepted",
+    "people_merged",
+  ]);
 
   const [tags, memories, people] = await Promise.all([
     tagIds.length
@@ -780,6 +784,19 @@ function ActivityRow({
       if (person) {
         undo = ["Desvincular", person.claimed_by !== entry.actor_id];
       }
+      break;
+    }
+    case "people_merged": {
+      const person = targets.people.get(id);
+      const merged = payloadText(entry.data, "merged_name") ?? "una persona";
+      text = person ? (
+        <>
+          fusionó «{merged}» con{" "}
+          <PersonLink slug={person.slug} name={person.full_name} />
+        </>
+      ) : (
+        `fusionó «${merged}» con otra persona`
+      );
       break;
     }
   }

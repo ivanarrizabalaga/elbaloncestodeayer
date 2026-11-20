@@ -778,6 +778,10 @@ export type Database = {
       is_active_user: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
       is_published_photo: { Args: { p_photo_id: string }; Returns: boolean };
+      merge_people: {
+        Args: { p_source: string; p_target: string };
+        Returns: string;
+      };
       photo_lookalikes: {
         Args: { max_bits?: number; photo_ids: string[] };
         Returns: {

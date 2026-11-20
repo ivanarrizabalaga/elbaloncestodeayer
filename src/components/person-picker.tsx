@@ -15,6 +15,7 @@ export function PersonPicker({
   pending,
   newNameLabel,
   allowUnknown = true,
+  allowNew = true,
   intro = "¿Quién es? Busca primero en el archivo para no duplicar personas.",
 }: {
   people: PersonOption[];
@@ -23,6 +24,8 @@ export function PersonPicker({
   pending: boolean;
   newNameLabel: (name: string) => string;
   allowUnknown?: boolean;
+  // false: only people already in the archive (e.g. merging duplicates).
+  allowNew?: boolean;
   intro?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -69,7 +72,7 @@ export function PersonPicker({
         </ul>
       )}
       <div className="flex flex-wrap gap-2">
-        {query.trim() && !exactMatch && (
+        {allowNew && query.trim() && !exactMatch && (
           <button
             type="button"
             disabled={pending}
