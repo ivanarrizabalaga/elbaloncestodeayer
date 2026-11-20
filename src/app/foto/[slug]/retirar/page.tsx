@@ -25,7 +25,7 @@ export default async function RemovalRequestPage({
   const supabase = await createClient();
   const { data: photo } = await supabase
     .from("photos")
-    .select("id, slug, team, season_label, storage_key, proposed_by")
+    .select("id, slug, team, team_2, season_label, storage_key, proposed_by")
     .eq("slug", slug)
     .eq("status", "published")
     .maybeSingle();

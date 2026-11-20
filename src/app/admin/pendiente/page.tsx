@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { FaceCrop } from "@/components/face-crop";
-import { photoLabel, photoSrc } from "@/lib/photos";
+import { photoLabel, photoSrc, teamsText } from "@/lib/photos";
 import { payloadText, reviewGroupKey } from "@/lib/review";
 import { initials } from "@/lib/site";
 import { fold } from "@/lib/slug";
@@ -35,7 +35,7 @@ const TABS = [
   },
 ] as const;
 
-const PHOTO = "slug, team, season_label, storage_key";
+const PHOTO = "slug, team, team_2, season_label, storage_key";
 // What a proposer may have filled in, shown on the proposal card.
 const DETAILS =
   "venue, competition, provenance, photographer, story, source_file";
@@ -253,6 +253,7 @@ type Client = Awaited<ReturnType<typeof createClient>>;
 type PhotoRef = {
   slug: string;
   team: string | null;
+  team_2: string | null;
   season_label: string | null;
   storage_key: string | null;
 };
@@ -535,7 +536,7 @@ function ProposalDetails({ photo }: { photo: NonNullable<Row["photo"]> }) {
   const rows = (
     [
       ["Temporada", photo.season_label],
-      ["Equipo", photo.team],
+      [photo.team_2 ? "Equipos" : "Equipo", teamsText(photo)],
       ["Pabellón", photo.venue],
       ["Competición", photo.competition],
       ["Procedencia", photo.provenance],

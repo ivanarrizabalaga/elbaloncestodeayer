@@ -92,7 +92,7 @@ export async function publishDrafts(formData: FormData) {
   const supabase = await createClient();
   const { data: drafts } = await supabase
     .from("photos")
-    .select("id, team, season_label")
+    .select("id, team, team_2, season_label")
     .eq("status", "draft")
     .in("id", ids);
 
@@ -125,7 +125,7 @@ export async function publishFolder(formData: FormData) {
   for (;;) {
     const { data: drafts } = await supabase
       .from("photos")
-      .select("id, team, season_label")
+      .select("id, team, team_2, season_label")
       .eq("status", "draft")
       .like("source_file", pattern)
       .limit(100);

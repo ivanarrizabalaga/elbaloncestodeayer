@@ -10,6 +10,7 @@ export type PhotoDetails = {
   year_from: number | null;
   year_to: number | null;
   team: string | null;
+  team_2: string | null;
   venue: string | null;
   competition: string | null;
   provenance: string | null;
@@ -27,11 +28,16 @@ export function readPhotoDetails(get: (name: string) => unknown): PhotoDetails {
   };
   const seasonLabel = text("season_label", 100);
   const { yearFrom, yearTo } = parseSeason(seasonLabel ?? "");
+  // A lone second team moves up to the first; the same team twice counts once.
+  const [team = null, team2 = null] = [
+    ...new Set([text("team", 200), text("team_2", 200)].filter(Boolean)),
+  ] as string[];
   return {
     season_label: seasonLabel,
     year_from: yearFrom,
     year_to: yearTo,
-    team: text("team", 200),
+    team,
+    team_2: team2,
     venue: text("venue", 200),
     competition: text("competition", 200),
     provenance: text("provenance", 200),
@@ -52,13 +58,16 @@ export async function loadDetailSuggestions(
 ): Promise<DetailSuggestions> {
   const { data } = await supabase
     .from("photos")
-    .select("team, venue, competition, provenance");
-  const values = (key: keyof DetailSuggestions) =>
-    [...new Set((data ?? []).flatMap((v) => (v[key] ? [v[key]] : [])))].sort(
-      (a, b) => a.localeCompare(b, "es"),
-    );
+    .select("team, team_2, venue, competition, provenance");
+  const values = (...keys: (keyof DetailSuggestions | "team_2")[]) =>
+    [
+      ...new Set(
+        (data ?? []).flatMap((v) => keys.flatMap((k) => (v[k] ? [v[k]] : []))),
+      ),
+    ].sort((a, b) => a.localeCompare(b, "es"));
   return {
-    team: values("team"),
+    // Both team fields share one list.
+    team: values("team", "team_2"),
     venue: values("venue"),
     competition: values("competition"),
     provenance: values("provenance"),

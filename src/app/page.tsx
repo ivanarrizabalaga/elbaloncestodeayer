@@ -10,7 +10,7 @@ import {
   readGalleryFilters,
   withQuery,
 } from "@/lib/gallery";
-import { photoLabel, photoSrc, seasonText } from "@/lib/photos";
+import { photoLabel, photoSrc, seasonText, teamsText } from "@/lib/photos";
 import {
   openGraph,
   previewImage,
@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const supabase = await createClient();
   const { data: featured } = await supabase
     .from("photos")
-    .select("slug, team, season_label")
+    .select("slug, team, team_2, season_label")
     .eq("status", "published")
     .order("featured", { ascending: false })
     .order("published_at", { ascending: false })
@@ -74,7 +74,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     await Promise.all([
       supabase
         .from("photos")
-        .select("id, team, venue, competition, year_from")
+        .select("id, team, team_2, venue, competition, year_from")
         .eq("status", "published"),
       supabase
         .from("people")
@@ -84,7 +84,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       supabase
         .from("tags")
         .select(
-          "id, x, y, photo:photos!inner(id, slug, status, team, season_label, storage_key, published_at)",
+          "id, x, y, photo:photos!inner(id, slug, status, team, team_2, season_label, storage_key, published_at)",
         )
         .is("person_id", null)
         .is("removed_at", null)
@@ -105,7 +105,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     supabase
       .from("photos")
       .select(
-        "id, slug, team, venue, season_label, year_from, storage_key, width, height",
+        "id, slug, team, team_2, venue, season_label, year_from, storage_key, width, height",
       )
       .eq("status", "published"),
     filters,
@@ -123,7 +123,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     : await supabase
         .from("photos")
         .select(
-          "id, slug, team, venue, season_label, storage_key, width, height",
+          "id, slug, team, team_2, venue, season_label, storage_key, width, height",
         )
         .eq("status", "published")
         .order("featured", { ascending: false })
@@ -302,7 +302,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     </span>
                     <span className="flex justify-between gap-2 pt-2 text-[13px] text-muted">
                       <span className="font-medium text-fg">
-                        {[photo.season_label, photo.team ?? photo.venue]
+                        {[photo.season_label, teamsText(photo) ?? photo.venue]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
@@ -379,7 +379,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     </FaceCrop>
                   )}
                   <span className="text-sm font-medium">
-                    {[tag.photo.season_label, tag.photo.team]
+                    {[tag.photo.season_label, teamsText(tag.photo)]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
@@ -400,6 +400,7 @@ function Featured({
   photo: {
     slug: string;
     team: string | null;
+    team_2: string | null;
     venue: string | null;
     season_label: string | null;
     storage_key: string;
@@ -429,7 +430,10 @@ function Featured({
           id="destacada"
           className="font-display text-[clamp(32px,3.6vw,48px)] leading-[1.02] font-bold"
         >
-          {[photo.team, photo.season_label && seasonText(photo.season_label)]
+          {[
+            teamsText(photo),
+            photo.season_label && seasonText(photo.season_label),
+          ]
             .filter(Boolean)
             .join(" · ") || photoLabel(photo)}
         </h1>

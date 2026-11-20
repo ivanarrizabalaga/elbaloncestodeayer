@@ -1,5 +1,5 @@
 import "server-only";
-import { photoLabel } from "@/lib/photos";
+import { photoLabel, teamsText } from "@/lib/photos";
 import type { createClient } from "@/lib/supabase/server";
 
 type Client = Awaited<ReturnType<typeof createClient>>;
@@ -32,7 +32,7 @@ export async function loadLookalikes(
   if (!pairs?.length) return result;
   const { data: others } = await supabase
     .from("photos")
-    .select("id, team, source_file, storage_key")
+    .select("id, team, team_2, source_file, storage_key")
     .in("id", [...new Set(pairs.map((p) => p.other_id))]);
   const byId = new Map((others ?? []).map((o) => [o.id, o]));
   for (const pair of pairs) {
@@ -42,7 +42,7 @@ export async function loadLookalikes(
       ...(result.get(pair.photo_id) ?? []),
       {
         id: pair.other_id,
-        label: `${other?.source_file ?? other?.team ?? "otra foto"} (${status})`,
+        label: `${other?.source_file ?? (other && teamsText(other)) ?? "otra foto"} (${status})`,
         storage_key: other?.storage_key ?? null,
       },
     ]);
@@ -79,7 +79,7 @@ export async function similarForUser(
   if (!pairs?.length) return [];
   const { data: others } = await supabase
     .from("photos")
-    .select("id, slug, status, team, season_label")
+    .select("id, slug, status, team, team_2, season_label")
     .in(
       "id",
       pairs.map((p) => p.other_id),

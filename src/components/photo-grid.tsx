@@ -5,6 +5,7 @@ export type GridPhoto = {
   id: string;
   slug: string;
   team: string | null;
+  team_2?: string | null;
   season_label: string | null;
   storage_key: string | null;
   width: number | null;

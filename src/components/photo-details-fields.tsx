@@ -3,6 +3,7 @@ import type { DetailSuggestions } from "@/lib/photo-details";
 type Values = {
   season_label?: string | null;
   team?: string | null;
+  team_2?: string | null;
   venue?: string | null;
   competition?: string | null;
   provenance?: string | null;
@@ -29,25 +30,31 @@ export function PhotoDetailsFields({
           placeholder="1984–85"
         />
         <Field
-          label="Equipo"
-          name="team"
-          value={values.team}
-          list={suggestions.team}
-        />
-        <Field
-          label="Pabellón"
-          name="venue"
-          value={values.venue}
-          list={suggestions.venue}
-        />
-        <Field
           label="Competición"
           name="competition"
           value={values.competition}
           placeholder="Liga, torneo…"
           list={suggestions.competition}
         />
+        <Field
+          label="Equipo"
+          name="team"
+          value={values.team}
+          list={suggestions.team}
+        />
+        <Field
+          label="Segundo equipo (opcional)"
+          name="team_2"
+          value={values.team_2}
+          list={suggestions.team}
+        />
       </div>
+      <Field
+        label="Pabellón"
+        name="venue"
+        value={values.venue}
+        list={suggestions.venue}
+      />
       <Field
         label="Procedencia"
         name="provenance"

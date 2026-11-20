@@ -32,11 +32,23 @@ export const PHOTO_STATUS_LABEL: Record<PhotoStatus, string> = {
   rejected: "Rechazada",
 };
 
-type Titled = { team: string | null; season_label: string | null };
+type Titled = {
+  team: string | null;
+  team_2?: string | null;
+  season_label: string | null;
+};
 
-// There is no title column: a photo is named after its team, or generically.
+// «CB Ribera – Estudiantes»: the teams of a photo (one or two), or null.
+export function teamsText(photo: {
+  team: string | null;
+  team_2?: string | null;
+}): string | null {
+  return [photo.team, photo.team_2].filter(Boolean).join(" – ") || null;
+}
+
+// There is no title column: a photo is named after its teams, or generically.
 export function photoTitle(photo: Titled): string {
-  return photo.team ?? "Foto sin título";
+  return teamsText(photo) ?? "Foto sin título";
 }
 
 // «1984–85» -> «temporada 1984–85»; a decade-only label («Años 70») -> «años 70».
