@@ -6,7 +6,7 @@ import { LookalikeList } from "@/components/lookalike-list";
 import { PhotoGrid } from "@/components/photo-grid";
 import { PhotoUploader } from "@/components/photo-uploader";
 import { loadLookalikes, type Lookalike } from "@/lib/lookalikes";
-import { photoLabel, photoSrc, seasonText } from "@/lib/photos";
+import { photoLabel, photoSrc, seasonText, teamsText } from "@/lib/photos";
 import { createClient } from "@/lib/supabase/server";
 import {
   discardDrafts,
@@ -32,6 +32,7 @@ type Draft = {
   id: string;
   slug: string;
   team: string | null;
+  team_2: string | null;
   season_label: string | null;
   venue: string | null;
   competition: string | null;
@@ -57,7 +58,7 @@ export default async function UploadPage({
   let query = supabase
     .from("photos")
     .select(
-      "id, slug, team, season_label, venue, competition, source_file, storage_key, width, height",
+      "id, slug, team, team_2, season_label, venue, competition, source_file, storage_key, width, height",
       { count: "exact" },
     )
     .eq("status", "draft");
@@ -220,7 +221,7 @@ export default async function UploadPage({
               ...d,
               href: `/admin/fotos/${d.id}`,
               caption:
-                [d.season_label, d.team].filter(Boolean).join(" · ") ||
+                [d.season_label, teamsText(d)].filter(Boolean).join(" · ") ||
                 "Sin datos",
             }))}
           />
@@ -314,7 +315,7 @@ function DraftsTable({
                     href={`/admin/fotos/${d.id}`}
                     className={`font-semibold ${d.team ? "" : "text-muted"}`}
                   >
-                    {d.team ?? "Sin equipo"}
+                    {teamsText(d) ?? "Sin equipo"}
                   </Link>
                   {details.length > 0 && (
                     <span className="text-muted">{details.join(" · ")}</span>

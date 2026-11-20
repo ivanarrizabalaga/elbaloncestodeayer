@@ -35,7 +35,7 @@ const getPhoto = cache(async (slug: string) => {
   const { data } = await supabase
     .from("photos")
     .select(
-      "id, slug, status, published_at, season_label, year_from, team, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height, proposed_by",
+      "id, slug, status, published_at, season_label, year_from, team, team_2, venue, competition, provenance, photographer, story, instagram_url, storage_key, width, height, proposed_by",
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -113,7 +113,9 @@ export default async function PhotoPage({
       photo.season_label
         ? supabase
             .from("photos")
-            .select("id, slug, team, season_label, storage_key, width, height")
+            .select(
+              "id, slug, team, team_2, season_label, storage_key, width, height",
+            )
             .eq("status", "published")
             .eq("season_label", photo.season_label)
             .neq("id", photo.id)
@@ -194,11 +196,20 @@ export default async function PhotoPage({
   // Team, decade, venue and competition link to the gallery filtered by that value
   // (a fresh list, not the one the photo was opened from).
   const decade = decadeOf(photo.year_from);
-  const details: { term: string; value: string | null; href?: string }[] = [
+  const details: {
+    term: string;
+    value: string | null;
+    href?: string;
+    // A second linked value in the same row (the second team).
+    also?: { value: string; href: string } | null;
+  }[] = [
     {
-      term: "Equipo",
+      term: photo.team_2 ? "Equipos" : "Equipo",
       value: photo.team,
       href: galleryHref({ team: photo.team ?? "" }),
+      also: photo.team_2
+        ? { value: photo.team_2, href: galleryHref({ team: photo.team_2 }) }
+        : null,
     },
     {
       term: "Década",
@@ -285,7 +296,7 @@ export default async function PhotoPage({
         details={
           details.length > 0 || photo.instagram_url ? (
             <dl className="grid grid-cols-[max-content_1fr] gap-x-5 gap-y-2.5 text-sm">
-              {details.map(({ term, value, href }) => (
+              {details.map(({ term, value, href, also }) => (
                 <div key={term} className="contents">
                   <dt className="text-muted">{term}</dt>
                   <dd>
@@ -298,6 +309,17 @@ export default async function PhotoPage({
                       </Link>
                     ) : (
                       value
+                    )}
+                    {also && (
+                      <>
+                        {" · "}
+                        <Link
+                          href={also.href}
+                          className="underline decoration-line-strong underline-offset-4 hover:text-accent hover:decoration-accent"
+                        >
+                          {also.value}
+                        </Link>
+                      </>
                     )}
                   </dd>
                 </div>

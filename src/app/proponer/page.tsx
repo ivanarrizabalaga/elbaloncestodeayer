@@ -48,7 +48,7 @@ export default async function ProposePage({
     supabase
       .from("photos")
       .select(
-        "id, slug, status, team, season_label, storage_key, source_file, created_at",
+        "id, slug, status, team, team_2, season_label, storage_key, source_file, created_at",
       )
       .eq("proposed_by", user.id)
       .order("created_at", { ascending: false }),
@@ -126,6 +126,7 @@ type Own = {
   slug: string;
   status: string;
   team: string | null;
+  team_2: string | null;
   season_label: string | null;
   storage_key: string | null;
   source_file: string | null;

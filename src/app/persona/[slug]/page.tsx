@@ -5,7 +5,7 @@ import { cache } from "react";
 import { FaceCrop } from "@/components/face-crop";
 import { PhotoGrid, type GridPhoto } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
-import { photoLabel, photoSrc } from "@/lib/photos";
+import { photoLabel, photoSrc, teamsText } from "@/lib/photos";
 import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
 import { INVITATION_ERRORS } from "@/lib/invitations";
@@ -106,7 +106,7 @@ export default async function PersonPage({
   const { data: ownTags } = await supabase
     .from("tags")
     .select(
-      "x, y, photo:photos!inner(id, slug, status, team, season_label, year_from, competition, storage_key, width, height, published_at)",
+      "x, y, photo:photos!inner(id, slug, status, team, team_2, season_label, year_from, competition, storage_key, width, height, published_at)",
     )
     .eq("person_id", person.id)
     .is("removed_at", null)
@@ -159,7 +159,7 @@ export default async function PersonPage({
     season.photos.push({
       ...photo,
       caption: [
-        photo.competition ?? photo.team,
+        photo.competition ?? teamsText(photo),
         `${count} ${count === 1 ? "etiquetado" : "etiquetados"}`,
       ]
         .filter(Boolean)

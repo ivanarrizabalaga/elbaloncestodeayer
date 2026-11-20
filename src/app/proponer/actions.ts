@@ -148,6 +148,7 @@ export async function saveOwnProposal(formData: FormData) {
     p_year_from: d.year_from ?? undefined,
     p_year_to: d.year_to ?? undefined,
     p_team: d.team ?? "",
+    p_team_2: d.team_2 ?? "",
     p_venue: d.venue ?? "",
     p_competition: d.competition ?? "",
     p_provenance: d.provenance ?? "",

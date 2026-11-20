@@ -43,7 +43,7 @@ $$;
 create function pg_temp.edit(p_photo uuid) returns void language sql as $$
   select public.update_own_proposal(
     p_photo, '1984–85', 'CB Inventado', 'Pabellón Inventado', 'Liga',
-    'Álbum de casa', 'Un vecino', '  La final.  ', 1984, 1985
+    'Álbum de casa', 'Un vecino', '  La final.  ', 1984, 1985, ' Estudiantes '
   );
 $$;
 
@@ -67,7 +67,7 @@ select throws_ok($$ select pg_temp.edit('10000000-0000-0000-0000-000000000003') 
 
 reset role;
 select ok(
-  (select team = 'CB Inventado' and year_from = 1984 and year_to = 1985 and story = 'La final.'
+  (select team = 'CB Inventado' and team_2 = 'Estudiantes' and year_from = 1984 and year_to = 1985 and story = 'La final.'
      and status = 'proposed'
    from public.photos where id = '10000000-0000-0000-0000-000000000001'),
   'the details are saved, trimmed, and the photo stays proposed'

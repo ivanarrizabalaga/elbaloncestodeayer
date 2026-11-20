@@ -69,6 +69,7 @@ export function galleryHref(only: Partial<GalleryFilters>): string {
 export type IndexRow = {
   id: string;
   team: string | null;
+  team_2: string | null;
   venue: string | null;
   competition: string | null;
   year_from: number | null;
@@ -90,7 +91,10 @@ function matches(
     (except === "decade" ||
       filters.decade === null ||
       decadeOf(row.year_from) === filters.decade) &&
-    (except === "team" || !filters.team || row.team === filters.team) &&
+    (except === "team" ||
+      !filters.team ||
+      row.team === filters.team ||
+      row.team_2 === filters.team) &&
     (except === "venue" || !filters.venue || row.venue === filters.venue) &&
     (except === "competition" ||
       !filters.competition ||
@@ -109,14 +113,16 @@ function options<T extends string | number>(
   filters: GalleryFilters,
   unnamed: ReadonlySet<string>,
   facet: Facet,
-  valueOf: (row: IndexRow) => T | null,
+  // A photo can give more than one value (its two teams).
+  valuesOf: (row: IndexRow) => (T | null)[],
   selected: T | null,
 ): Option<T>[] {
   const counts = new Map<T, number>();
   for (const row of rows) {
-    const value = valueOf(row);
-    if (value === null || !matches(row, filters, unnamed, facet)) continue;
-    counts.set(value, (counts.get(value) ?? 0) + 1);
+    if (!matches(row, filters, unnamed, facet)) continue;
+    for (const value of new Set(valuesOf(row))) {
+      if (value !== null) counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
   }
   if (selected !== null && selected !== "" && !counts.has(selected)) {
     counts.set(selected, 0);
@@ -143,16 +149,23 @@ export function filterOptions(
       filters,
       unnamed,
       "decade",
-      (r) => decadeOf(r.year_from),
+      (r) => [decadeOf(r.year_from)],
       filters.decade,
     ),
-    teams: options(rows, filters, unnamed, "team", (r) => r.team, filters.team),
+    teams: options(
+      rows,
+      filters,
+      unnamed,
+      "team",
+      (r) => [r.team, r.team_2],
+      filters.team,
+    ),
     venues: options(
       rows,
       filters,
       unnamed,
       "venue",
-      (r) => r.venue,
+      (r) => [r.venue],
       filters.venue,
     ),
   };
@@ -214,6 +227,12 @@ interface Filterable<T> {
   lte(column: string, value: number): T;
   eq(column: string, value: string): T;
   in(column: string, values: readonly string[]): T;
+  or(filters: string): T;
+}
+
+// A value inside a PostgREST or() filter: quoted, so commas and brackets are literal.
+function quoted(value: string): string {
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 export function applyGalleryFilters<T extends Filterable<T>>(
@@ -225,7 +244,10 @@ export function applyGalleryFilters<T extends Filterable<T>>(
   if (filters.decade !== null) {
     q = q.gte("year_from", filters.decade).lte("year_from", filters.decade + 9);
   }
-  if (filters.team) q = q.eq("team", filters.team);
+  if (filters.team) {
+    const team = quoted(filters.team);
+    q = q.or(`team.eq.${team},team_2.eq.${team}`);
+  }
   if (filters.venue) q = q.eq("venue", filters.venue);
   if (filters.competition) q = q.eq("competition", filters.competition);
   if (filters.unnamed) q = q.in("id", unnamedIds);

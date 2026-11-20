@@ -29,7 +29,7 @@ export default async function OwnProposalPage({
     supabase
       .from("photos")
       .select(
-        "id, status, storage_key, width, height, source_file, season_label, team, venue, competition, provenance, photographer, story",
+        "id, status, storage_key, width, height, source_file, season_label, team, team_2, venue, competition, provenance, photographer, story",
       )
       .eq("id", id)
       .eq("proposed_by", user.id)

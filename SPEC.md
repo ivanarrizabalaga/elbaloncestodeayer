@@ -69,7 +69,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Invitation | `/invitacion/[token]` | `Invitacion.dc.html` | Arrives via link (WhatsApp): «¿Eres tú?» → email → magic link → signed in. Also «No soy yo» |
 | Request access | `/registro` | _(no mockup)_ | Name, email and «Tengo 14 años o más»; linked from `/entrar`. Same answer whether or not the email already has an account |
 | Propose photos | `/proponer` | _(no mockup)_ | Users upload photos for review; «Tus fotos»: one list, pending first, each row with a title (team and season, else the uploaded file's name), a status pill and its action (*Añadir datos*, *Retirar*, *Ver foto*, *Quitar de la lista*). Optional «Datos comunes a estas fotos» when uploading |
-| Details of your photo | `/proponer/[id]` | _(no mockup)_ | The proposer fills in season, team, venue, competition, provenance, photographer and story while the photo is pending |
+| Details of your photo | `/proponer/[id]` | _(no mockup)_ | The proposer fills in season, team (and second team), venue, competition, provenance, photographer and story while the photo is pending |
 | Withdrawal request | `/foto/[slug]/retirar` | _(no mockup)_ | Reason and optional contact; the contributor withdraws directly instead |
 | My account | `/cuenta` | _(no mockup)_ | Change the display name, link to your person and photos, sign out, delete the account |
 | Privacy | `/privacidad` | _(no mockup)_ | What is stored, where, and how to change or delete it (§11) |
@@ -108,6 +108,7 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 - `slug`, `status` (`proposed` | `draft` | `published` | `rejected` | `withdrawn`)
 - `season_label` (free text, e.g. "1984–85"), `year_from`, `year_to` (for decade filtering)
 - `team`, `venue`, `competition` (free text with autocomplete from existing values; normalise later only if needed)
+- `team_2`: optional second team, for photos showing two (a game, a tournament, both squads). Neutral, not «rival»: we don't know which side the photo was taken from. Both count the same: the title reads «CB Ribera – Estudiantes», the photo page lists «Equipos» with a link each, the gallery's team filter matches either and both share the autocomplete list. A lone second team is saved as the first. Person summaries (teams a person played for) use only `team`.
 - `provenance`, `photographer`, `story`, `instagram_url`, `featured` (the «foto de la semana» on the home page; only one at a time: featuring a photo unfeatures the previous one. With none featured, the home shows the latest published photo)
 - `storage_key`, `width`, `height`
 - `source_file`: for imported photos, the file's path in the imported folder or export; for proposed photos, the uploaded file's name (no `/`, so it never counts as a folder)

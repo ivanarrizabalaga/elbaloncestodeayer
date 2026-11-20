@@ -260,7 +260,7 @@ export async function publishProposal(formData: FormData) {
 
   const { data: current } = await supabase
     .from("photos")
-    .select("team, season_label")
+    .select("team, team_2, season_label")
     .eq("id", item.photo_id)
     .eq("status", "proposed")
     .maybeSingle();

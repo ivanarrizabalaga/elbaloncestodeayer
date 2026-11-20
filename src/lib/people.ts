@@ -12,7 +12,7 @@ export async function loadPersonOptions(
 ): Promise<PersonOption[]> {
   const { data: people } = await supabase
     .from("people")
-    .select("id, full_name, tags(photo:photos(team, year_from))")
+    .select("id, full_name, tags(photo:photos(team, team_2, year_from))")
     .is("merged_into", null)
     .is("tags.removed_at", null)
     .order("full_name");

@@ -366,6 +366,7 @@ export type Database = {
           storage_key: string | null;
           story: string | null;
           team: string | null;
+          team_2: string | null;
           venue: string | null;
           width: number | null;
           year_from: number | null;
@@ -392,6 +393,7 @@ export type Database = {
           storage_key?: string | null;
           story?: string | null;
           team?: string | null;
+          team_2?: string | null;
           venue?: string | null;
           width?: number | null;
           year_from?: number | null;
@@ -417,6 +419,7 @@ export type Database = {
           storage_key?: string | null;
           story?: string | null;
           team?: string | null;
+          team_2?: string | null;
           venue?: string | null;
           width?: number | null;
           year_from?: number | null;
@@ -818,6 +821,7 @@ export type Database = {
           p_season_label: string;
           p_story: string;
           p_team: string;
+          p_team_2?: string;
           p_venue: string;
           p_year_from?: number;
           p_year_to?: number;

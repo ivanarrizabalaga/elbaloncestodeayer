@@ -104,11 +104,7 @@ export async function savePhoto(formData: FormData) {
   if (republishing) {
     publishFields = { status: "published" as const };
   } else if (publishing) {
-    publishFields = await firstPublishFields(
-      supabase,
-      { team: details.team, season_label: details.season_label },
-      admin.id,
-    );
+    publishFields = await firstPublishFields(supabase, details, admin.id);
   }
 
   const { error } = await supabase

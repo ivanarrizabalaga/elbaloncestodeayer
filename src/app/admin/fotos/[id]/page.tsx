@@ -41,7 +41,7 @@ export default async function EditPhotoPage({
   const { data: photo } = await supabase
     .from("photos")
     .select(
-      "id, slug, status, season_label, team, venue, competition, provenance, photographer, story, instagram_url, featured, storage_key, width, height, proposed_by",
+      "id, slug, status, season_label, team, team_2, venue, competition, provenance, photographer, story, instagram_url, featured, storage_key, width, height, proposed_by",
     )
     .eq("id", id)
     .maybeSingle();
@@ -68,7 +68,7 @@ export default async function EditPhotoPage({
     ? { data: null }
     : await supabase
         .from("photos")
-        .select("slug, team, season_label")
+        .select("slug, team, team_2, season_label")
         .eq("featured", true)
         .maybeSingle();
   // Drafts and user proposals can be published; withdrawn photos stay down (SPEC §5).
