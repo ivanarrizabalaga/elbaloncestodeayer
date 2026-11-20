@@ -80,7 +80,7 @@ URLs are in Spanish because the audience sees them (e.g. `/foto/[slug]`, `/perso
 | Pending review | `/admin/pendiente` | `AdminPendiente.dc.html` | Queue: proposed photos, suggested names, withdrawal requests (priority), «No soy yo» disputes, possible duplicates. «Me lo quedo» to split the work. Recent activity with undo |
 | Upload and tag | `/admin/subir` | `AdminSubir.dc.html` | Multi-upload into drafts, click a face → search existing person / create new / leave as «?». Photo details. Publish. Drafts as a grid or a table (50 per page, filter by imported folder, lookalikes flagged by `image_hash`) with bulk «Publicar» / «Descartar» |
 | Users and admins | `/admin/usuarios` | `AdminUsuarios.dc.html` | List of admins (with pending invitations), users and access requests. Invite admin, make/remove admin, block, approve/reject requests |
-| People | `/admin/personas` | _(no mockup)_ | List, edit, merge duplicates |
+| People | `/admin/personas` | _(no mockup)_ | Every person with their status (no invitation, pending, expired, has an account), searchable; invite or new link. Edit and merge duplicates still to come |
 | Photos | `/admin/fotos` | _(no mockup)_ | List with status (draft, published, withdrawn), search, edit |
 | Instagram import | — | _(no mockup)_ | One-off: load Jorge's export as drafts (local script, see §7) |
 
@@ -172,6 +172,8 @@ All tables have RLS enabled. The schema lives in `supabase/migrations/`; this se
 **«No soy yo» in the queue** — *Mantener* closes it. *Quitar el nombre* turns the face back into «?», expires the invitation and, if a name was proposed, files it as a name suggestion credited to whoever proposed it.
 
 **Recent activity** — lists what was published without review. Undo: a user's tag is removed (soft delete), a memory is hidden, a claim («Este soy yo» or an accepted invitation) is released.
+
+**People** — `/admin/personas` lists every person of the archive (not merged), most photographed first, with their number of photos and where they stand: *sin invitar*, *invitación pendiente* or *caducada* (the latest open invitation, who sent it and when it expires) or *con cuenta* (linking to the account in `/admin/usuarios`). Filter by status and search by name. *Invitar* / *Nuevo enlace* creates a user invitation like «Invitar» on a photo (from one of their published tags, so the invitation page shows the photo) and offers the link for WhatsApp or to copy: person invitations are not bound to an email, so there is nothing to email. Older links stay valid until they expire. Reads go through the existing RLS (admins read all invitations and profiles).
 
 **Duplicates** — the admin merges: tags move to the target person and the other one gets `merged_into`.
 
