@@ -173,7 +173,7 @@ export default async function PeoplePage({
             <tr key={row.id} className="border-t border-line">
               <Td>
                 <Link
-                  href={`/persona/${row.slug}`}
+                  href={`/admin/personas/${row.id}`}
                   className="font-medium underline-offset-4 hover:underline"
                 >
                   {row.full_name}
