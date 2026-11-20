@@ -16,6 +16,7 @@ export function AdminNav({
   const links = [
     { href: "/admin/pendiente", label: "Pendiente", badge: pending },
     { href: "/admin/subir", label: "Subir fotos", badge: 0 },
+    { href: "/admin/personas", label: "Personas", badge: 0 },
     {
       href: "/admin/usuarios",
       label: "Usuarios y admins",
