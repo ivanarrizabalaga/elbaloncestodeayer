@@ -109,7 +109,7 @@ export default async function EditPhotoPage({
             href={`/foto/${photo.slug}`}
             className="inline-flex min-h-11 items-center text-accent"
           >
-            Ver ficha →
+            Ver en la web →
           </Link>
         </span>
       </div>

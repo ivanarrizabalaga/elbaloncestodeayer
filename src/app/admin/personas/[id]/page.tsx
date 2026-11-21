@@ -50,7 +50,7 @@ export default async function EditPersonPage({
     person.claimed_by
       ? supabase
           .from("profiles")
-          .select("display_name")
+          .select("display_name, role")
           .eq("id", person.claimed_by)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -75,15 +75,29 @@ export default async function EditPersonPage({
         <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted">
           <span>
             {photos} {photos === 1 ? "foto" : "fotos"} ·{" "}
-            {account
-              ? `con cuenta${account.display_name ? ` (${account.display_name})` : ""}`
-              : "sin cuenta"}
+            {account ? (
+              <>
+                Tiene cuenta:{" "}
+                <Link
+                  href={
+                    account.role === "admin"
+                      ? "/admin/usuarios"
+                      : `/admin/usuarios?lista=usuarios&q=${encodeURIComponent(account.display_name ?? "")}`
+                  }
+                  className="text-accent underline-offset-4 hover:underline"
+                >
+                  {account.display_name ?? "ver su cuenta"}
+                </Link>
+              </>
+            ) : (
+              "Aún no tiene cuenta"
+            )}
           </span>
           <Link
             href={`/persona/${person.slug}`}
             className="inline-flex min-h-11 items-center text-accent"
           >
-            Ver ficha →
+            Ver en la web →
           </Link>
         </p>
       </div>

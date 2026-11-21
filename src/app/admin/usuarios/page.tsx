@@ -134,7 +134,7 @@ export default async function UsersPage({
           {requests.length === 0 && approved.length === 0 ? (
             <p className="text-muted">No hay solicitudes pendientes.</p>
           ) : (
-            <Table head={["Persona", "Estado", "Pidió acceso", "Acciones"]}>
+            <Table head={["Nombre", "Estado", "Pidió acceso", "Acciones"]}>
               {requests.map((r) => (
                 <tr key={r.id} className="border-t border-line">
                   <Td>
@@ -212,8 +212,8 @@ export default async function UsersPage({
         <>
           <Table
             head={[
-              "Persona",
-              "Perfil en el archivo",
+              "Nombre",
+              "Sale en las fotos como",
               "Estado",
               "Último acceso",
               "Revisiones",
@@ -332,7 +332,7 @@ export default async function UsersPage({
             <Table
               head={[
                 "Usuario",
-                "Perfil en el archivo",
+                "Sale en las fotos como",
                 "Invitado por",
                 "Aportaciones",
                 "Acciones",

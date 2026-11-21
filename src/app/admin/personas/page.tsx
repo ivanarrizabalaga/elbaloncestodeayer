@@ -9,16 +9,23 @@ import { Chip, Table, Td } from "../table";
 
 export const metadata: Metadata = { title: "Personas" };
 
-// Where each person of the archive stands with their account.
+// Where each person of the archive stands with their account. An expired invitation
+// counts as «sin invitar» in the filter: they need a new link all the same.
 type Status = "sin-invitar" | "pendiente" | "caducada" | "con-cuenta";
+type Filter = "sin-invitar" | "pendiente" | "con-cuenta";
 
-const TABS: { status: Status | null; label: string }[] = [
-  { status: null, label: "Todas" },
-  { status: "sin-invitar", label: "Sin invitar" },
-  { status: "pendiente", label: "Invitación pendiente" },
-  { status: "caducada", label: "Invitación caducada" },
-  { status: "con-cuenta", label: "Con cuenta" },
+const FILTERS: { value: Filter | null; label: string }[] = [
+  { value: null, label: "Todas" },
+  { value: "sin-invitar", label: "Sin invitar" },
+  { value: "pendiente", label: "Invitación pendiente" },
+  { value: "con-cuenta", label: "Con cuenta" },
 ];
+
+const PAGE_SIZE = 50;
+
+function filterOf(status: Status): Filter {
+  return status === "caducada" ? "sin-invitar" : status;
+}
 
 const BUTTON =
   "inline-flex h-11 items-center rounded-full border border-line-strong px-4 text-[13px] font-medium";
@@ -27,8 +34,8 @@ export default async function PeoplePage({
   searchParams,
 }: PageProps<"/admin/personas">) {
   await requireAdmin();
-  const { estado, q } = await searchParams;
-  const filter = TABS.find((t) => t.status === estado)?.status ?? null;
+  const { estado, q, pagina } = await searchParams;
+  const filter = FILTERS.find((f) => f.value === estado)?.value ?? null;
   const query = typeof q === "string" ? q.trim() : "";
   const supabase = await createClient();
   const now = new Date().getTime();
@@ -64,6 +71,9 @@ export default async function PeoplePage({
     .select("id, display_name, role")
     .in("id", [...new Set([...claimedIds, ...inviterIds])]);
   const profileById = new Map((profileRows ?? []).map((p) => [p.id, p]));
+
+  const inviter = (id: string | null) =>
+    (id && profileById.get(id)?.display_name) ?? "alguien";
 
   const lastInvitation = new Map<
     string,
@@ -101,15 +111,24 @@ export default async function PeoplePage({
     // Most photographed first: they are the ones most worth inviting.
     .sort((a, b) => b.photos - a.photos);
 
-  const counts = new Map<Status | null, number>([[null, rows.length]]);
-  for (const row of rows) {
-    counts.set(row.status, (counts.get(row.status) ?? 0) + 1);
+  // Counts follow the search, so each pill says how many it would show.
+  const searched = query
+    ? rows.filter((row) => fold(row.full_name).includes(fold(query)))
+    : rows;
+  const counts = new Map<Filter | null, number>([[null, searched.length]]);
+  for (const row of searched) {
+    const key = filterOf(row.status);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
-  const shown = rows.filter(
-    (row) =>
-      (!filter || row.status === filter) &&
-      (!query || fold(row.full_name).includes(fold(query))),
+  const matching = filter
+    ? searched.filter((row) => filterOf(row.status) === filter)
+    : searched;
+  const pages = Math.max(1, Math.ceil(matching.length / PAGE_SIZE));
+  const page = Math.min(
+    pages,
+    Math.max(1, Number.parseInt(String(pagina ?? "1"), 10) || 1),
   );
+  const shown = matching.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-8 sm:px-6">
@@ -123,43 +142,44 @@ export default async function PeoplePage({
         </p>
       </div>
 
-      <nav aria-label="Estado" className="flex flex-wrap gap-2">
-        {TABS.map((tab) => {
-          const active = filter === tab.status;
-          return (
-            <Link
-              key={tab.label}
-              href={hrefFor(tab.status, query)}
-              aria-current={active ? "page" : undefined}
-              className={`inline-flex h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-medium ${
-                active
-                  ? "border-fg bg-fg text-bg"
-                  : "border-line-strong text-fg"
-              }`}
-            >
-              {tab.label}
-              <span className="text-xs opacity-75">
-                {counts.get(tab.status) ?? 0}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <Form action="" className="flex max-w-md gap-2">
-        {filter && <input type="hidden" name="estado" value={filter} />}
-        <input
-          type="search"
-          name="q"
-          defaultValue={query}
-          aria-label="Buscar personas"
-          placeholder="Buscar por nombre"
-          className="h-11 min-w-0 flex-1 rounded-lg border border-line-strong bg-[#1a1a1a] px-3 text-[15px] text-fg"
-        />
-        <button type="submit" className={BUTTON}>
-          Buscar
-        </button>
-      </Form>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Form action="" className="flex w-full max-w-md gap-2">
+          {filter && <input type="hidden" name="estado" value={filter} />}
+          <input
+            type="search"
+            name="q"
+            defaultValue={query}
+            aria-label="Buscar personas"
+            placeholder="Buscar por nombre"
+            className="h-11 min-w-0 flex-1 rounded-lg border border-line-strong bg-[#1a1a1a] px-3 text-[15px] text-fg"
+          />
+          <button type="submit" className={BUTTON}>
+            Buscar
+          </button>
+        </Form>
+        <nav aria-label="Filtrar por cuenta" className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => {
+            const active = filter === f.value;
+            return (
+              <Link
+                key={f.label}
+                href={hrefFor({ filter: f.value, query })}
+                aria-current={active ? "page" : undefined}
+                className={`inline-flex h-11 items-center gap-2 rounded-full border px-3.5 text-sm font-medium ${
+                  active
+                    ? "border-fg bg-fg text-bg"
+                    : "border-line-strong text-fg"
+                }`}
+              >
+                {f.label}
+                <span className="text-xs opacity-75">
+                  {counts.get(f.value) ?? 0}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
       {shown.length === 0 ? (
         <p className="text-muted">
@@ -168,12 +188,12 @@ export default async function PeoplePage({
             : "No hay nadie en esta lista."}
         </p>
       ) : (
-        <Table head={["Persona", "Fotos", "Estado", "Detalle", "Acciones"]}>
+        <Table head={["Persona", "Fotos", "Cuenta", "Acciones"]}>
           {shown.map((row) => (
             <tr key={row.id} className="border-t border-line">
               <Td>
                 <Link
-                  href={`/admin/personas/${row.id}`}
+                  href={`/persona/${row.slug}`}
                   className="font-medium underline-offset-4 hover:underline"
                 >
                   {row.full_name}
@@ -181,61 +201,96 @@ export default async function PeoplePage({
               </Td>
               <Td>{row.photos}</Td>
               <Td>
-                {row.status === "con-cuenta" ? (
-                  <Chip>Con cuenta</Chip>
-                ) : row.status === "pendiente" ? (
-                  <Chip muted>Invitación pendiente</Chip>
-                ) : row.status === "caducada" ? (
-                  <Chip muted>Invitación caducada</Chip>
-                ) : (
-                  <span className="text-muted">Sin invitar</span>
-                )}
+                <div className="flex flex-col items-start gap-1">
+                  {row.status === "con-cuenta" ? (
+                    <>
+                      <Chip>Tiene cuenta</Chip>
+                      {row.account && (
+                        <Link
+                          href={accountHref(row.account)}
+                          className="text-xs text-accent underline-offset-4 hover:underline"
+                        >
+                          Ver su cuenta
+                          {row.account.display_name &&
+                            row.account.display_name !== row.full_name &&
+                            ` (${row.account.display_name})`}
+                        </Link>
+                      )}
+                    </>
+                  ) : row.status === "pendiente" && row.invitation ? (
+                    <>
+                      <Chip muted>Invitada, aún no ha entrado</Chip>
+                      <span className="text-xs text-muted">
+                        Invitada por {inviter(row.invitation.invited_by)} ·
+                        caduca {timeAgo(row.invitation.expires_at)}
+                      </span>
+                    </>
+                  ) : row.status === "caducada" && row.invitation ? (
+                    <>
+                      <Chip muted>La invitación caducó</Chip>
+                      <span className="text-xs text-muted">
+                        Mándale un enlace nuevo
+                      </span>
+                    </>
+                  ) : (
+                    <Chip muted>Sin invitar</Chip>
+                  )}
+                </div>
               </Td>
               <Td>
-                {row.account ? (
-                  <Link
-                    href={
-                      row.account.role === "admin"
-                        ? "/admin/usuarios"
-                        : `/admin/usuarios?lista=usuarios&q=${encodeURIComponent(row.account.display_name ?? "")}`
-                    }
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    Ver {row.account.role === "admin" ? "admin" : "usuario"}
-                    {row.account.display_name &&
-                      row.account.display_name !== row.full_name &&
-                      ` (${row.account.display_name})`}
+                <div className="flex items-start justify-end gap-2">
+                  {row.status !== "con-cuenta" && (
+                    <InviteButton
+                      personId={row.id}
+                      personName={row.full_name}
+                      tagId={row.tagId}
+                      label={
+                        row.status === "sin-invitar"
+                          ? "Invitar"
+                          : "Nuevo enlace"
+                      }
+                      className="h-11! border-line-strong! px-4!"
+                    />
+                  )}
+                  <Link href={`/admin/personas/${row.id}`} className={BUTTON}>
+                    Editar
                   </Link>
-                ) : row.invitation ? (
-                  <span className="text-muted">
-                    Por{" "}
-                    {(row.invitation.invited_by &&
-                      profileById.get(row.invitation.invited_by)
-                        ?.display_name) ??
-                      "alguien"}{" "}
-                    {timeAgo(row.invitation.created_at)} ·{" "}
-                    {row.status === "pendiente" ? "caduca " : "caducó "}
-                    {timeAgo(row.invitation.expires_at)}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </Td>
-              <Td>
-                {row.status !== "con-cuenta" && (
-                  <InviteButton
-                    personId={row.id}
-                    personName={row.full_name}
-                    tagId={row.tagId}
-                    label={
-                      row.status === "sin-invitar" ? "Invitar" : "Nuevo enlace"
-                    }
-                  />
-                )}
+                </div>
               </Td>
             </tr>
           ))}
         </Table>
+      )}
+      {pages > 1 && (
+        <nav
+          aria-label="Páginas"
+          className="flex items-center justify-between gap-3 text-sm"
+        >
+          {page > 1 ? (
+            <Link
+              href={hrefFor({ filter, query, page: page - 1 })}
+              className={BUTTON}
+            >
+              ← Anterior
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-muted">
+            {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, matching.length)} de {matching.length}
+          </span>
+          {page < pages ? (
+            <Link
+              href={hrefFor({ filter, query, page: page + 1 })}
+              className={BUTTON}
+            >
+              Siguiente →
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
       )}
       <p className="text-sm text-muted">
         Las invitaciones van por enlace, no por email: «Nuevo enlace» crea uno
@@ -246,9 +301,28 @@ export default async function PeoplePage({
   );
 }
 
-function hrefFor(status: Status | null, query: string): string {
+function hrefFor({
+  filter,
+  query,
+  page = 1,
+}: {
+  filter: Filter | null;
+  query: string;
+  page?: number;
+}): string {
   const params = new URLSearchParams();
-  if (status) params.set("estado", status);
+  if (filter) params.set("estado", filter);
   if (query) params.set("q", query);
+  if (page > 1) params.set("pagina", String(page));
   return `?${params}`;
+}
+
+// Admins are listed in the first tab of /admin/usuarios; users are searched by name.
+function accountHref(account: {
+  role: string;
+  display_name: string | null;
+}): string {
+  return account.role === "admin"
+    ? "/admin/usuarios"
+    : `/admin/usuarios?lista=usuarios&q=${encodeURIComponent(account.display_name ?? "")}`;
 }
