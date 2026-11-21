@@ -305,8 +305,8 @@ export function PhotoView({
                           {!tag.person
                             ? "¿Sabes quién es?"
                             : tag.person.claimed
-                              ? "Perfil propio"
-                              : "Todavía sin cuenta"}
+                              ? "Tiene cuenta"
+                              : "Aún no tiene cuenta"}
                         </span>
                       </span>
                     </button>
