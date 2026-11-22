@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { CONTACT_EMAIL as CONTACT } from "@/lib/site";
+import {
+  CONTACT_EMAIL as CONTACT,
+  INSTAGRAM_URL,
+  YOUTUBE_URL,
+} from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacidad",
@@ -37,7 +41,9 @@ export default function PrivacyPage() {
             "El archivo lo llevan sus administradores."
           )}{" "}
           Para cualquier cosa sobre tus datos, escríbenos a{" "}
-          <A href={`mailto:${CONTACT}`}>{CONTACT}</A>.
+          <A href={`mailto:${CONTACT}`}>{CONTACT}</A>. También estamos en{" "}
+          <A href={INSTAGRAM_URL}>Instagram</A> y en{" "}
+          <A href={YOUTUBE_URL}>YouTube</A>.
         </p>
         <p>Para tener cuenta hay que tener al menos 14 años.</p>
       </Section>
