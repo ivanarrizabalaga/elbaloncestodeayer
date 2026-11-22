@@ -18,6 +18,7 @@ import {
 } from "./actions";
 import { PhotoLightbox } from "./photo-lightbox";
 import { PhotoStepper } from "./photo-stepper";
+import { PhotoSwipe, type Neighbour } from "./photo-swipe";
 
 export type PhotoTag = {
   id: string;
@@ -39,8 +40,8 @@ type Props = {
   alt: string;
   tags: PhotoTag[];
   // Neighbours in the gallery list (null at either end, or for unpublished photos).
-  previousHref: string | null;
-  nextHref: string | null;
+  previous: Neighbour;
+  next: Neighbour;
   viewer: Viewer;
   // For the «¿Quién es?» search (empty for visitors).
   people: PersonOption[];
@@ -60,8 +61,8 @@ export function PhotoView({
   height,
   alt,
   tags,
-  previousHref,
-  nextHref,
+  previous,
+  next,
   viewer,
   people,
   heading,
@@ -127,86 +128,99 @@ export function PhotoView({
 
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-10">
-      <figure className="m-0 flex flex-col gap-3 lg:col-start-1 lg:row-start-1">
+      <figure className="m-0 flex flex-col gap-3 overflow-x-clip lg:col-start-1 lg:row-start-1">
         <div
           className="mx-auto flex flex-col gap-3"
           // Fit tall photos in the viewport without distorting the markers.
           // The previous/next strip below takes the same width.
           style={{ width: `min(100%, calc(80vh * ${width / height}))` }}
         >
-          <div
-            className="relative overflow-hidden rounded-lg bg-surface-3"
-            style={{ aspectRatio: `${width} / ${height}` }}
+          <PhotoSwipe
+            key={src}
+            previous={previous}
+            next={next}
+            enabled={!tagging}
           >
-            {/* Plain <img>: derivatives are generated at upload time (phase 3), not by Next. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={src}
-              width={width}
-              height={height}
-              alt={alt}
-              className="absolute inset-0 h-full w-full"
-            />
-
-            {tagging && (
-              <button
-                type="button"
-                aria-label="Toca la cara que quieres etiquetar"
-                onClick={(event) => setPoint(pointFrom(event))}
-                className="absolute inset-0 z-10 cursor-crosshair bg-bg/20"
+            <div
+              className="relative overflow-hidden rounded-lg bg-surface-3"
+              style={{ aspectRatio: `${width} / ${height}` }}
+            >
+              {/* Plain <img>: derivatives are generated at upload time (phase 3), not by Next. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                width={width}
+                height={height}
+                alt={alt}
+                className="absolute inset-0 h-full w-full"
               />
-            )}
-            {point && <PendingPoint point={point} />}
 
-            {showTags &&
-              tags.map((tag) => {
-                const selected = tag.id === selectedId;
-                const name = tag.person?.name ?? "¿Quién es?";
-                return (
-                  <div
-                    key={tag.id}
-                    className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
-                    style={{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => select(tag.id)}
-                      aria-label={`${tag.number}: ${tag.person?.name ?? "sin identificar"}`}
-                      aria-pressed={selected}
-                      className="flex size-11 items-center justify-center"
+              {tagging && (
+                <button
+                  type="button"
+                  aria-label="Toca la cara que quieres etiquetar"
+                  onClick={(event) => setPoint(pointFrom(event))}
+                  className="absolute inset-0 z-10 cursor-crosshair bg-bg/20"
+                />
+              )}
+              {point && <PendingPoint point={point} />}
+
+              {showTags &&
+                tags.map((tag) => {
+                  const selected = tag.id === selectedId;
+                  const name = tag.person?.name ?? "¿Quién es?";
+                  return (
+                    <div
+                      key={tag.id}
+                      className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                      style={{
+                        left: `${tag.x * 100}%`,
+                        top: `${tag.y * 100}%`,
+                      }}
                     >
-                      <span
-                        className={`flex size-7.5 items-center justify-center rounded-full bg-bg/40 text-[13px] font-semibold ${
-                          tag.person
-                            ? "border-2 border-fg"
-                            : "border-2 border-dashed border-accent text-sm font-bold text-accent"
-                        } ${selected ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : ""}`}
+                      <button
+                        type="button"
+                        onClick={() => select(tag.id)}
+                        aria-label={`${tag.number}: ${tag.person?.name ?? "sin identificar"}`}
+                        aria-pressed={selected}
+                        className="flex size-11 items-center justify-center"
                       >
-                        {tag.person ? tag.number : "?"}
-                      </span>
-                    </button>
-                    {selected && (
-                      <span className="absolute top-11 rounded-md bg-accent px-2.5 py-1 text-[13px] font-semibold whitespace-nowrap text-on-accent">
-                        {name}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+                        <span
+                          className={`flex size-7.5 items-center justify-center rounded-full bg-bg/40 text-[13px] font-semibold ${
+                            tag.person
+                              ? "border-2 border-fg"
+                              : "border-2 border-dashed border-accent text-sm font-bold text-accent"
+                          } ${selected ? "ring-2 ring-accent ring-offset-2 ring-offset-bg" : ""}`}
+                        >
+                          {tag.person ? tag.number : "?"}
+                        </span>
+                      </button>
+                      {selected && (
+                        <span className="absolute top-11 rounded-md bg-accent px-2.5 py-1 text-[13px] font-semibold whitespace-nowrap text-on-accent">
+                          {name}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
 
-            {tags.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowTags(!showTags)}
-                className="absolute top-3 right-3 inline-flex h-11 items-center gap-2 rounded-full bg-bg/85 px-4 text-sm font-medium"
-              >
-                <TagIcon />
-                {showTags ? "Ocultar etiquetas" : "Mostrar etiquetas"}
-              </button>
-            )}
-            <PhotoLightbox src={src} alt={alt} />
-          </div>
-          <PhotoStepper previousHref={previousHref} nextHref={nextHref} />
+              {tags.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowTags(!showTags)}
+                  className="absolute top-3 right-3 inline-flex h-11 items-center gap-2 rounded-full bg-bg/85 px-4 text-sm font-medium"
+                >
+                  <TagIcon />
+                  {showTags ? "Ocultar etiquetas" : "Mostrar etiquetas"}
+                </button>
+              )}
+              <PhotoLightbox src={src} alt={alt} />
+            </div>
+          </PhotoSwipe>
+          <PhotoStepper
+            previousHref={previous?.href ?? null}
+            nextHref={next?.href ?? null}
+          />
         </div>
         {tagging &&
           (point ? (

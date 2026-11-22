@@ -257,18 +257,27 @@ export function applyGalleryFilters<T extends Filterable<T>>(
 // Gallery order: newest published first. `id` breaks ties (bulk publishing gives many
 // photos the same published_at), so the order is stable and previous/next never loop.
 //
-// The photos before and after this one in the filtered gallery list, by slug.
+// The photos before and after this one in the filtered gallery list (the image too, so
+// swiping can show the next photo under the current one).
+export type PhotoNeighbour = {
+  slug: string;
+  storage_key: string | null;
+} | null;
+
 export async function photoNeighbours(
   supabase: Client,
   photo: { id: string; published_at: string },
   filters: GalleryFilters,
-): Promise<{ previous: string | null; next: string | null }> {
+): Promise<{ previous: PhotoNeighbour; next: PhotoNeighbour }> {
   const unnamedIds = filters.unnamed ? await unnamedPhotoIds(supabase) : [];
   // Quoted: timestamps contain characters PostgREST reserves in `or` filters.
   const at = `"${photo.published_at}"`;
   const base = () =>
     applyGalleryFilters(
-      supabase.from("photos").select("slug").eq("status", "published"),
+      supabase
+        .from("photos")
+        .select("slug, storage_key")
+        .eq("status", "published"),
       filters,
       unnamedIds,
     );
@@ -287,7 +296,7 @@ export async function photoNeighbours(
       .maybeSingle(),
   ]);
   return {
-    previous: previous.data?.slug ?? null,
-    next: next.data?.slug ?? null,
+    previous: previous.data ?? null,
+    next: next.data ?? null,
   };
 }

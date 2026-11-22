@@ -2,16 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 type Props = { previousHref: string | null; nextHref: string | null };
 
 // Under the photo: previous/next in the gallery list the photo was opened from.
-// Swipe on the strip (not on the photo, where a tap tags a face), tap the arrows,
-// or use ← → on a keyboard. It stops at both ends of the list.
+// Tap the arrows or use ← → on a keyboard (swiping the photo is PhotoSwipe).
+// It stops at both ends of the list.
 export function PhotoStepper({ previousHref, nextHref }: Props) {
   const router = useRouter();
-  const start = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -41,35 +40,17 @@ export function PhotoStepper({ previousHref, nextHref }: Props) {
 
   if (!previousHref && !nextHref) return null;
 
-  function onPointerUp(event: React.PointerEvent) {
-    if (!start.current) return;
-    const dx = event.clientX - start.current.x;
-    const dy = event.clientY - start.current.y;
-    start.current = null;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-    // Finger moves left: the next photo comes in from the right.
-    const href = dx < 0 ? nextHref : previousHref;
-    if (href) router.replace(href);
-  }
-
   return (
     <nav
       aria-label="Pasar de foto"
-      onPointerDown={(event) => {
-        start.current = { x: event.clientX, y: event.clientY };
-      }}
-      onPointerUp={onPointerUp}
-      onPointerCancel={() => {
-        start.current = null;
-      }}
-      className="flex touch-pan-y items-center justify-between rounded-lg bg-surface-2 select-none"
+      className="flex items-center justify-between rounded-lg bg-surface-2 select-none"
     >
       <Step href={previousHref} rel="prev">
         <ChevronIcon left />
         Anterior
       </Step>
       <span aria-hidden="true" className="text-[13px] text-muted">
-        <span className="pointer-fine:hidden">Desliza</span>
+        <span className="pointer-fine:hidden">Desliza la foto</span>
         <span className="hidden pointer-fine:inline">← →</span>
       </span>
       <Step href={nextHref} rel="next">

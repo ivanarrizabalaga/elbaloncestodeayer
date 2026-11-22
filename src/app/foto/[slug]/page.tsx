@@ -9,6 +9,7 @@ import {
   galleryHref,
   galleryQuery,
   photoNeighbours,
+  type PhotoNeighbour,
   readGalleryFilters,
   withQuery,
 } from "@/lib/gallery";
@@ -131,8 +132,14 @@ export default async function PhotoPage({
           )
         : Promise.resolve({ previous: null, next: null }),
     ]);
-  const photoHref = (s: string | null) =>
-    s ? withQuery(`/foto/${s}`, listQuery) : null;
+  const neighbour = (n: PhotoNeighbour) =>
+    n
+      ? {
+          href: withQuery(`/foto/${n.slug}`, listQuery),
+          // Published photos always have an image; null only before upload.
+          src: n.storage_key ? photoSrc(n.storage_key) : null,
+        }
+      : null;
 
   // Signed-in viewers get the person search and their own person (for «Quitar mi etiqueta»).
   const [people, ownPerson] = user
@@ -277,8 +284,8 @@ export default async function PhotoPage({
         height={photo.height}
         alt={`Foto: ${photoLabel(photo)}`}
         tags={tags}
-        previousHref={photoHref(neighbours.previous)}
-        nextHref={photoHref(neighbours.next)}
+        previous={neighbour(neighbours.previous)}
+        next={neighbour(neighbours.next)}
         viewer={canWrite ? viewer : null}
         people={people}
         heading={
