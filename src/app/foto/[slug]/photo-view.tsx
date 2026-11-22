@@ -413,7 +413,7 @@ export function PhotoView({
                   setShowTags(true);
                   setNotice(null);
                 }}
-                className="mt-1.5 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-accent font-semibold text-on-accent"
+                className="mt-1.5 inline-flex h-12 items-center justify-center gap-2 self-start rounded-full bg-accent px-5.5 font-semibold text-on-accent"
               >
                 <span aria-hidden="true" className="text-lg leading-none">
                   +
