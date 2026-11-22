@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CodeForm } from "@/components/code-form";
+import { CODE_ERRORS } from "@/lib/code-email";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { sendMagicLink } from "./actions";
 
@@ -9,9 +11,10 @@ export const metadata: Metadata = { title: "Entrar" };
 const ERRORS: Record<string, string> = {
   email: "Escribe un email válido.",
   espera:
-    "Has pedido varios enlaces seguidos. Espera un minuto y vuelve a intentarlo.",
+    "Has hecho varios intentos seguidos. Espera un minuto y vuelve a intentarlo.",
   enlace:
     "El enlace no es válido o ha caducado. Pide uno nuevo: llega en unos segundos.",
+  ...CODE_ERRORS,
 };
 
 export default async function SignInPage({
@@ -36,22 +39,34 @@ export default async function SignInPage({
       </div>
 
       {sent ? (
-        <div
-          role="status"
-          className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-6"
-        >
-          <p className="font-semibold">Revisa tu correo</p>
-          <p className="text-muted">
-            Si ese email tiene cuenta, te acabamos de enviar un enlace para
-            entrar. Mira también en la carpeta de spam. Si aún no tienes cuenta,{" "}
-            <Link href="/registro" className="text-accent underline">
-              pide acceso
+        <div className="flex flex-col gap-6">
+          <div
+            role="status"
+            className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-6"
+          >
+            <p className="font-semibold">Revisa tu correo</p>
+            <p className="text-muted">
+              Si ese email tiene cuenta, te acabamos de enviar un enlace para
+              entrar. Mira también en la carpeta de spam. Si aún no tienes
+              cuenta,{" "}
+              <Link href="/registro" className="text-accent underline">
+                pide acceso
+              </Link>
+              .
+            </p>
+            <Link href="/entrar" className="mt-2 w-fit text-accent underline">
+              Usar otro email
             </Link>
-            .
-          </p>
-          <Link href="/entrar" className="mt-2 w-fit text-accent underline">
-            Usar otro email
-          </Link>
+          </div>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3"
+            >
+              {error}
+            </p>
+          )}
+          <CodeForm next="/" retry="/entrar?enviado=1" />
         </div>
       ) : (
         <form action={sendMagicLink} className="flex flex-col gap-4">

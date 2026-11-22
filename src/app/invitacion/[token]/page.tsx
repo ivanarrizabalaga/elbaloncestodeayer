@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { CodeForm } from "@/components/code-form";
 import { FaceCrop } from "@/components/face-crop";
 import { INVITATION_ERRORS } from "@/lib/invitations";
 import { photoSrc } from "@/lib/photos";
@@ -155,6 +156,11 @@ export default async function InvitationPage({
           confirma que eres tú. Puede tardar un par de minutos; mira también en
           la carpeta de spam.
         </p>
+        {problem && <Problem>{problem}</Problem>}
+        <CodeForm
+          next={`/invitacion/${token}`}
+          retry={`/invitacion/${token}?paso=enviado`}
+        />
         <Link href="?paso=email" className={SECONDARY}>
           No me ha llegado, usar otro email
         </Link>
