@@ -5,7 +5,7 @@ import { InviteButton } from "@/components/invite-button";
 import { fold } from "@/lib/slug";
 import { createClient, requireAdmin } from "@/lib/supabase/server";
 import { timeAgo } from "@/lib/time";
-import { Chip, Table, Td } from "../table";
+import { Table, Td } from "../table";
 
 export const metadata: Metadata = { title: "Personas" };
 
@@ -52,28 +52,13 @@ export default async function PeoplePage({
     // Open person invitations, newest first: the first one per person is the one that counts.
     supabase
       .from("invitations")
-      .select("person_id, created_at, expires_at, invited_by")
+      .select("person_id, created_at, expires_at")
       .eq("role", "user")
       .not("person_id", "is", null)
       .is("accepted_at", null)
       .order("created_at", { ascending: false }),
   ]);
   const people = peopleRows ?? [];
-
-  const claimedIds = people.flatMap((p) =>
-    p.claimed_by ? [p.claimed_by] : [],
-  );
-  const inviterIds = (invitationRows ?? []).flatMap((i) =>
-    i.invited_by ? [i.invited_by] : [],
-  );
-  const { data: profileRows } = await supabase
-    .from("profiles")
-    .select("id, display_name, role")
-    .in("id", [...new Set([...claimedIds, ...inviterIds])]);
-  const profileById = new Map((profileRows ?? []).map((p) => [p.id, p]));
-
-  const inviter = (id: string | null) =>
-    (id && profileById.get(id)?.display_name) ?? "alguien";
 
   const lastInvitation = new Map<
     string,
@@ -101,9 +86,6 @@ export default async function PeoplePage({
         ...person,
         status,
         invitation,
-        account: person.claimed_by
-          ? (profileById.get(person.claimed_by) ?? null)
-          : null,
         photos: new Set(person.tags.map((t) => t.photo_id)).size,
         tagId: tag?.id ?? null,
       };
@@ -188,7 +170,10 @@ export default async function PeoplePage({
             : "No hay nadie en esta lista."}
         </p>
       ) : (
-        <Table head={["Persona", "Fotos", "Cuenta", "Acciones"]}>
+        <Table
+          head={["Persona", "Fotos", "Cuenta", "Acciones"]}
+          widths={["w-[30%]", "w-20", "w-[30%]", ""]}
+        >
           {shown.map((row) => (
             <tr key={row.id} className="border-t border-line">
               <Td>
@@ -201,44 +186,16 @@ export default async function PeoplePage({
               </Td>
               <Td>{row.photos}</Td>
               <Td>
-                <div className="flex flex-col items-start gap-1">
-                  {row.status === "con-cuenta" ? (
-                    <>
-                      <Chip>Tiene cuenta</Chip>
-                      {row.account && (
-                        <Link
-                          href={accountHref(row.account)}
-                          className="text-xs text-accent underline-offset-4 hover:underline"
-                        >
-                          Ver su cuenta
-                          {row.account.display_name &&
-                            row.account.display_name !== row.full_name &&
-                            ` (${row.account.display_name})`}
-                        </Link>
-                      )}
-                    </>
-                  ) : row.status === "pendiente" && row.invitation ? (
-                    <>
-                      <Chip muted>Invitada, aún no ha entrado</Chip>
-                      <span className="text-xs text-muted">
-                        Invitada por {inviter(row.invitation.invited_by)} ·
-                        caduca {timeAgo(row.invitation.expires_at)}
-                      </span>
-                    </>
-                  ) : row.status === "caducada" && row.invitation ? (
-                    <>
-                      <Chip muted>La invitación caducó</Chip>
-                      <span className="text-xs text-muted">
-                        Mándale un enlace nuevo
-                      </span>
-                    </>
-                  ) : (
-                    <Chip muted>Sin invitar</Chip>
-                  )}
-                </div>
+                {row.status === "con-cuenta"
+                  ? "Tiene cuenta"
+                  : row.status === "pendiente" && row.invitation
+                    ? `Invitada · caduca ${timeAgo(row.invitation.expires_at)}`
+                    : row.status === "caducada"
+                      ? "La invitación caducó"
+                      : "Sin invitar"}
               </Td>
               <Td>
-                <div className="flex items-start justify-end gap-2">
+                <div className="flex items-center justify-end gap-2">
                   {row.status !== "con-cuenta" && (
                     <InviteButton
                       personId={row.id}
@@ -315,14 +272,4 @@ function hrefFor({
   if (query) params.set("q", query);
   if (page > 1) params.set("pagina", String(page));
   return `?${params}`;
-}
-
-// Admins are listed in the first tab of /admin/usuarios; users are searched by name.
-function accountHref(account: {
-  role: string;
-  display_name: string | null;
-}): string {
-  return account.role === "admin"
-    ? "/admin/usuarios"
-    : `/admin/usuarios?lista=usuarios&q=${encodeURIComponent(account.display_name ?? "")}`;
 }

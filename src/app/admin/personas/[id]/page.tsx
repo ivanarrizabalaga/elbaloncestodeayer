@@ -2,8 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { BackLink } from "@/components/back-link";
+import { ConfirmButton } from "@/components/confirm-button";
+import { InviteButton } from "@/components/invite-button";
 import { loadPersonOptions } from "@/lib/people";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireAdmin } from "@/lib/supabase/server";
+import { timeAgo } from "@/lib/time";
+import {
+  blockUser,
+  makeAdmin,
+  removeAdmin,
+  unblockUser,
+} from "../../usuarios/actions";
 import { mergePerson, savePerson } from "../actions";
 import { MergePicker } from "./merge-picker";
 
@@ -19,7 +28,12 @@ const ERRORS: Record<string, string> = {
   cuentas:
     "Las dos personas tienen cuenta, así que no se pueden fusionar: cada cuenta va con una sola persona.",
   fusionar: "No se pudo fusionar. Recarga y vuelve a probar.",
+  ultimo: "Tiene que quedar al menos un admin activo.",
+  "1": "No se pudo completar la acción.",
 };
+
+const BUTTON =
+  "inline-flex h-11 items-center rounded-full border border-line-strong px-4 text-[13px] font-medium";
 
 const INPUT =
   "rounded-lg border border-line-strong bg-[#1a1a1a] px-3 text-base text-fg";
@@ -28,6 +42,7 @@ export default async function EditPersonPage({
   params,
   searchParams,
 }: PageProps<"/admin/personas/[id]">) {
+  const me = await requireAdmin();
   const { id } = await params;
   const { ok, error } = await searchParams;
   const supabase = await createClient();
@@ -41,22 +56,34 @@ export default async function EditPersonPage({
   // An old link to a merged duplicate opens the person it was merged into.
   if (person.merged_into) redirect(`/admin/personas/${person.merged_into}`);
 
-  const [{ data: tags }, { data: account }, options] = await Promise.all([
-    supabase
-      .from("tags")
-      .select("photo_id")
-      .eq("person_id", id)
-      .is("removed_at", null),
-    person.claimed_by
-      ? supabase
-          .from("profiles")
-          .select("display_name, role")
-          .eq("id", person.claimed_by)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    loadPersonOptions(supabase),
-  ]);
+  const [{ data: tags }, { data: accounts }, { data: invitation }, options] =
+    await Promise.all([
+      supabase
+        .from("tags")
+        .select("id, photo_id, photo:photos(status)")
+        .eq("person_id", id)
+        .is("removed_at", null),
+      // Same list as /admin/usuarios, for the email, role and block of their account.
+      person.claimed_by
+        ? supabase.rpc("admin_user_list")
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("invitations")
+        .select("expires_at")
+        .eq("person_id", id)
+        .eq("role", "user")
+        .is("accepted_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      loadPersonOptions(supabase),
+    ]);
+  const account = accounts?.find((a) => a.id === person.claimed_by) ?? null;
   const photos = new Set((tags ?? []).map((t) => t.photo_id)).size;
+  // The invitation page shows the photo of the tag it was sent from: pick a published one.
+  const tagId =
+    (tags ?? []).find((t) => t.photo?.status === "published")?.id ?? null;
   const message = typeof ok === "string" ? MESSAGES[ok] : undefined;
   const problem = typeof error === "string" ? ERRORS[error] : undefined;
 
@@ -74,24 +101,7 @@ export default async function EditPersonPage({
         </h1>
         <p className="flex flex-wrap items-center gap-x-3 text-sm text-muted">
           <span>
-            {photos} {photos === 1 ? "foto" : "fotos"} ·{" "}
-            {account ? (
-              <>
-                Tiene cuenta:{" "}
-                <Link
-                  href={
-                    account.role === "admin"
-                      ? "/admin/usuarios"
-                      : `/admin/usuarios?lista=usuarios&q=${encodeURIComponent(account.display_name ?? "")}`
-                  }
-                  className="text-accent underline-offset-4 hover:underline"
-                >
-                  {account.display_name ?? "ver su cuenta"}
-                </Link>
-              </>
-            ) : (
-              "Aún no tiene cuenta"
-            )}
+            {photos} {photos === 1 ? "foto" : "fotos"}
           </span>
           <Link
             href={`/persona/${person.slug}`}
@@ -150,6 +160,99 @@ export default async function EditPersonPage({
           Guardar cambios
         </button>
       </form>
+
+      <section
+        aria-labelledby="cuenta"
+        className="flex flex-col gap-3 border-t border-line pt-6"
+      >
+        <h2 id="cuenta" className="font-display text-2xl font-bold">
+          Cuenta
+        </h2>
+        {account ? (
+          <>
+            <div className="flex flex-col gap-0.5">
+              <p>
+                {account.blocked_at
+                  ? "Bloqueada"
+                  : account.role === "admin"
+                    ? "Admin"
+                    : "Usuario"}
+                {account.email && (
+                  <span className="text-muted"> · {account.email}</span>
+                )}
+              </p>
+              <p className="text-sm text-muted">
+                {account.last_sign_in_at
+                  ? `Entró por última vez ${timeAgo(account.last_sign_in_at)}`
+                  : "Todavía no ha entrado"}
+              </p>
+            </div>
+            {account.id === me.id ? (
+              <p className="text-sm text-muted">Es tu cuenta.</p>
+            ) : (
+              <form className="flex flex-wrap items-center gap-2">
+                <input type="hidden" name="id" value={account.id} />
+                <input type="hidden" name="persona" value={person.id} />
+                {account.blocked_at ? (
+                  <button
+                    type="submit"
+                    formAction={unblockUser}
+                    className={BUTTON}
+                  >
+                    Desbloquear
+                  </button>
+                ) : account.role === "admin" ? (
+                  <ConfirmButton
+                    compact
+                    label="Quitar admin"
+                    title={`¿Quitar de admin a ${person.full_name}?`}
+                    body="Seguirá siendo usuario: podrá etiquetar, añadir recuerdos y proponer fotos, pero no publicar ni revisar."
+                    confirmLabel="Sí, quitar admin"
+                    action={removeAdmin}
+                  />
+                ) : (
+                  <>
+                    <ConfirmButton
+                      compact
+                      tone="neutral"
+                      label="Hacer admin"
+                      title={`¿Hacer admin a ${person.full_name}?`}
+                      body="Podrá subir, editar y publicar fotos, revisar lo pendiente y gestionar usuarios, también a otros admins."
+                      confirmLabel="Sí, hacer admin"
+                      action={makeAdmin}
+                    />
+                    <ConfirmButton
+                      compact
+                      label="Bloquear"
+                      title={`¿Bloquear a ${person.full_name}?`}
+                      body="No podrá etiquetar, añadir recuerdos, invitar ni proponer fotos. Lo que ya aportó se queda. Puedes desbloquearla cuando quieras."
+                      confirmLabel="Sí, bloquear"
+                      action={blockUser}
+                    />
+                  </>
+                )}
+              </form>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-muted">
+              {invitation
+                ? `Aún no tiene cuenta. Tiene una invitación que caduca ${timeAgo(invitation.expires_at)}.`
+                : "Aún no tiene cuenta. Mándale un enlace por WhatsApp para que entre: así podrá etiquetarse y contar sus recuerdos."}
+            </p>
+            <div className="flex">
+              <InviteButton
+                personId={person.id}
+                personName={person.full_name}
+                tagId={tagId}
+                label={invitation ? "Nuevo enlace" : "Invitar"}
+                className="h-11! border-line-strong! px-4!"
+              />
+            </div>
+          </>
+        )}
+      </section>
 
       <section
         aria-labelledby="fusionar"

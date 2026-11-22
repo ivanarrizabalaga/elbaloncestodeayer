@@ -21,8 +21,13 @@ function target(formData: FormData): string {
   return id;
 }
 
-// Back to the tab the form was on, with an optional «error=…» or «ok=…».
+// Back to the tab the form was on, with an optional «error=…» or «ok=…». Role and block
+// changes can also be made from a person's admin page («persona» = their id): back there.
 function back(formData: FormData, query = ""): never {
+  const persona = String(formData.get("persona") ?? "");
+  if (UUID.test(persona)) {
+    redirect(`/admin/personas/${persona}${query ? `?${query}` : ""}`);
+  }
   const lista = formData.get("lista");
   const list =
     lista === "usuarios" || lista === "solicitudes" ? `lista=${lista}&` : "";
