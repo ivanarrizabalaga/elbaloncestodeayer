@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ConfirmButton } from "@/components/confirm-button";
 import { signOut } from "@/app/entrar/actions";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
-import { deleteAccount, updateName } from "./actions";
+import { deleteAccount, setMentionEmails, updateName } from "./actions";
 
 export const metadata: Metadata = {
   title: "Mi cuenta",
@@ -31,18 +31,25 @@ export default async function AccountPage({
   const problem = typeof error === "string" ? ERRORS[error] : undefined;
 
   const supabase = await createClient();
-  const [{ data: person }, { count: publishedPhotos }] = await Promise.all([
-    supabase
-      .from("people")
-      .select("full_name, slug")
-      .eq("claimed_by", user.id)
-      .maybeSingle(),
-    supabase
-      .from("photos")
-      .select("id", { count: "exact", head: true })
-      .eq("proposed_by", user.id)
-      .eq("status", "published"),
-  ]);
+  const [{ data: person }, { count: publishedPhotos }, { data: profile }] =
+    await Promise.all([
+      supabase
+        .from("people")
+        .select("full_name, slug")
+        .eq("claimed_by", user.id)
+        .maybeSingle(),
+      supabase
+        .from("photos")
+        .select("id", { count: "exact", head: true })
+        .eq("proposed_by", user.id)
+        .eq("status", "published"),
+      supabase
+        .from("profiles")
+        .select("mention_emails")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+  const mentionEmails = profile?.mention_emails ?? true;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 pt-8 sm:px-6">
@@ -53,12 +60,13 @@ export default async function AccountPage({
         <p className="text-muted">Has entrado como {user.email}.</p>
       </div>
 
-      {(problem || ok === "nombre") && (
+      {(problem || ok === "nombre" || ok === "avisos") && (
         <p
           role={problem ? "alert" : "status"}
           className={`rounded-lg px-4 py-3 ${problem ? "border border-accent" : "bg-surface-2"}`}
         >
-          {problem ?? "Nombre guardado."}
+          {problem ??
+            (ok === "avisos" ? "Avisos guardados." : "Nombre guardado.")}
         </p>
       )}
 
@@ -117,6 +125,26 @@ export default async function AccountPage({
             Tus fotos propuestas →
           </Link>
         )}
+      </section>
+
+      <section aria-labelledby="avisos" className={CARD}>
+        <h2 id="avisos" className={H2}>
+          Avisos
+        </h2>
+        <p>
+          {mentionEmails
+            ? "Si alguien te menciona en un recuerdo, te llega un email al día siguiente (como mucho uno al día)."
+            : "No recibes emails cuando alguien te menciona en un recuerdo."}
+        </p>
+        <form action={setMentionEmails}>
+          <input type="hidden" name="on" value={mentionEmails ? "0" : "1"} />
+          <button
+            type="submit"
+            className="inline-flex h-11 items-center rounded-full border border-line-strong px-5 font-medium"
+          >
+            {mentionEmails ? "Desactivar estos avisos" : "Activar estos avisos"}
+          </button>
+        </form>
       </section>
 
       <section aria-labelledby="salir" className={CARD}>

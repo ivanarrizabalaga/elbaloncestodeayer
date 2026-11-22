@@ -275,6 +275,124 @@ export type Database = {
           },
         ];
       };
+      memory_mentions: {
+        Row: {
+          created_at: string;
+          memory_id: string;
+          notified_at: string | null;
+          profile_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          created_at?: string;
+          memory_id: string;
+          notified_at?: string | null;
+          profile_id: string;
+        };
+        Update: {
+          created_at?: string;
+          memory_id?: string;
+          notified_at?: string | null;
+          profile_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "memory_mentions_memory_id_fkey";
+            columns: ["memory_id"];
+            isOneToOne: false;
+            referencedRelation: "memories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_mentions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_names";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "memory_mentions_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      mention_emails: {
+        Row: {
+          id: string;
+          mentions: number;
+          profile_id: string | null;
+          sent_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: string;
+          mentions: number;
+          profile_id?: string | null;
+          sent_at?: string;
+        };
+        Update: {
+          id?: string;
+          mentions?: number;
+          profile_id?: string | null;
+          sent_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mention_emails_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profile_names";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mention_emails_profile_id_fkey";
+            columns: ["profile_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      mention_settings: {
+        Row: {
+          id: boolean;
+          paused: boolean;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          id?: boolean;
+          paused?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          paused?: boolean;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mention_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profile_names";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "mention_settings_updated_by_fkey";
+            columns: ["updated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       people: {
         Row: {
           bio: string | null;
@@ -466,6 +584,7 @@ export type Database = {
           display_name: string | null;
           id: string;
           invited_by: string | null;
+          mention_emails: boolean;
           role: Database["public"]["Enums"]["user_role"];
         };
         ComputedFields: never;
@@ -475,6 +594,7 @@ export type Database = {
           display_name?: string | null;
           id: string;
           invited_by?: string | null;
+          mention_emails?: boolean;
           role?: Database["public"]["Enums"]["user_role"];
         };
         Update: {
@@ -483,6 +603,7 @@ export type Database = {
           display_name?: string | null;
           id?: string;
           invited_by?: string | null;
+          mention_emails?: boolean;
           role?: Database["public"]["Enums"]["user_role"];
         };
         Relationships: [

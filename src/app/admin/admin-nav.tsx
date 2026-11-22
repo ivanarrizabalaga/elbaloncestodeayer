@@ -23,6 +23,7 @@ export function AdminNav({
       badge: requests,
       query: requests > 0 ? "?lista=solicitudes" : "",
     },
+    { href: "/admin/avisos", label: "Avisos", badge: 0 },
   ];
   return (
     <nav aria-label="Administración" className="border-b border-line">

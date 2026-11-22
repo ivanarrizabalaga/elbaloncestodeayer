@@ -40,12 +40,15 @@ Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue
   | `NEXT_PUBLIC_SUPABASE_URL` | Production, Preview |
   | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Production, Preview |
   | `CRON_SECRET` | Production (Sensitive) |
-  | `SUPABASE_SECRET_KEY` | Production (Sensitive). Only used to create invited accounts |
+  | `SUPABASE_SECRET_KEY` | Production (Sensitive). Only used to create invited accounts and by the mention digest |
+  | `RESEND_API_KEY` | Production (Sensitive). The same key Supabase uses as SMTP password; the app sends the mention emails with it |
   | `NEXT_PUBLIC_IMAGES_URL` | Production, Preview |
   | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_ORIGINALS_BUCKET` | Production |
 
-  `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is only used by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation (sign-ups are disabled).
-- `vercel.json`: functions region `dub1` and a daily cron (06:00 UTC) calling `/api/keep-alive`, which runs a light query so Supabase Free does not pause the project after a week of inactivity. Vercel sends `Authorization: Bearer $CRON_SECRET`.
+  `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is only used by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation (sign-ups are disabled) and in the daily mention digest.
+- `vercel.json`: functions region `dub1` and two daily crons. Vercel sends `Authorization: Bearer $CRON_SECRET`, and on Hobby a job can fire at any minute of its hour.
+  - 06:00 UTC, `/api/keep-alive`: a light query so Supabase Free does not pause the project after a week of inactivity.
+  - 07:00 UTC, `/api/mention-digest`: the mention emails (one per person and day, at most 50 per run and 1,500 a month; paused and counted in `/admin/avisos`). To send it by hand: `curl -H "Authorization: Bearer $CRON_SECRET" https://elbaloncestodeayer.com/api/mention-digest`.
 - Web Analytics enabled in the project (Analytics tab). The `<Analytics />` component in the root layout sends page views; it only reports on deployments, not in local dev.
 - Previews use the production database (there is only one Supabase project). Signing in does not work on previews: magic links always point to the production domain.
 
@@ -65,7 +68,7 @@ Linked from the repo with `pnpm exec supabase login` and `pnpm exec supabase lin
 
 - Domain `mail.elbaloncestodeayer.com` (a subdomain, so the apex keeps its own mail setup and reputation), verified with the DNS records above.
 - One API key with "Sending access" restricted to that domain. Supabase uses it as the SMTP password (`smtp.resend.com:465`, user `resend`, sender `no-reply@mail.elbaloncestodeayer.com`).
-- Free plan: 3,000 emails/month, 100/day. Supabase limits magic links to 30/hour (`[remotes.production.auth.rate_limit]`).
+- Free plan: 3,000 emails/month, 100/day, shared by the sign-in emails (sent by Supabase) and the mention emails (sent by the app through the API). Over the quota Resend refuses to send (HTTP 429), it does not charge. Supabase limits magic links to 30/hour (`[remotes.production.auth.rate_limit]`); the mention digest keeps to 50/day and 1,500/month so sign-ins always have room.
 
 ## Cloudflare R2 (images)
 

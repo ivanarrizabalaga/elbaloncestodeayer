@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { deletePhotoFiles } from "@/lib/uploads";
 
-// «Mi cuenta». The name goes through RLS (users may only update their own display_name).
+// «Mi cuenta». Name and mention emails go through RLS (users may only update those columns
+// of their own profile).
 
 export async function updateName(formData: FormData) {
   const user = await getCurrentUser();
@@ -23,6 +24,18 @@ export async function updateName(formData: FormData) {
     .eq("id", user.id);
   revalidatePath("/", "layout");
   redirect(`/cuenta?${error ? "error=guardar" : "ok=nombre"}`);
+}
+
+// Emails when someone mentions you in a memory (src/lib/mention-digest.ts).
+export async function setMentionEmails(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/entrar");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ mention_emails: formData.get("on") === "1" })
+    .eq("id", user.id);
+  redirect(`/cuenta?${error ? "error=guardar" : "ok=avisos"}`);
 }
 
 // «Borrar mi cuenta» (see delete_own_account for what stays and what goes).
