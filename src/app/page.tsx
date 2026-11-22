@@ -17,6 +17,7 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
 } from "@/lib/seo";
+import { INSTAGRAM_URL } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { GalleryFilters, type Filters } from "./gallery-filters";
 
@@ -169,7 +170,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           etiquetar a tus compañeros e invitarles.
         </p>
         <a
-          href="https://www.instagram.com/explore/tags/elbaloncestodeayer/"
+          href={INSTAGRAM_URL}
           className="inline-flex min-h-11 w-fit items-center rounded-full bg-accent px-6 font-semibold text-on-accent"
         >
           Mientras tanto, en Instagram

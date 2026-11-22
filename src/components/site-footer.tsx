@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { INSTAGRAM_URL, YOUTUBE_URL } from "@/lib/site";
+
+const linkClass =
+  "inline-flex min-h-11 items-center underline-offset-4 hover:text-fg hover:underline";
 
 export function SiteFooter() {
   return (
@@ -9,17 +13,14 @@ export function SiteFooter() {
           personal y crece con lo que aporta cada uno.
         </p>
         <nav aria-label="Pie" className="flex flex-wrap gap-x-6">
-          <Link
-            href="/privacidad"
-            className="inline-flex min-h-11 items-center underline-offset-4 hover:text-fg hover:underline"
-          >
+          <Link href="/privacidad" className={linkClass}>
             Privacidad
           </Link>
-          <a
-            href="https://www.instagram.com/explore/tags/elbaloncestodeayer/"
-            className="inline-flex min-h-11 items-center underline-offset-4 hover:text-fg hover:underline"
-          >
-            #elbaloncestodeayer en Instagram
+          <a href={INSTAGRAM_URL} className={linkClass}>
+            Instagram
+          </a>
+          <a href={YOUTUBE_URL} className={linkClass}>
+            YouTube
           </a>
         </nav>
       </div>
