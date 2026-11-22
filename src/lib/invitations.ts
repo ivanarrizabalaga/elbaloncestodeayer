@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
+import { CODE_ERRORS } from "./code-email";
 
 // The link carries a random token; the database only keeps its SHA-256 (hex), the same hash
 // public.invitation_token_hash() computes.
@@ -28,6 +29,9 @@ export const INVITATION_ERRORS: Record<string, string> = {
   email: "Escribe un email válido.",
   email_otra: "Esta invitación ya se está usando con otro email.",
   envio: "No se pudo enviar el enlace. Inténtalo en un minuto.",
+  espera:
+    "Has hecho varios intentos seguidos. Espera un minuto y vuelve a intentarlo.",
+  ...CODE_ERRORS,
 };
 
 export function errorCode(message: string | undefined): string {
