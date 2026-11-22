@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { ConfirmButton } from "@/components/confirm-button";
 import { FaceCrop } from "@/components/face-crop";
+import { plainBody } from "@/lib/mentions";
 import { photoLabel, photoSrc, teamsText } from "@/lib/photos";
 import { payloadText, reviewGroupKey } from "@/lib/review";
 import { initials } from "@/lib/site";
@@ -745,7 +746,7 @@ function ActivityRow({
       text = memory ? (
         <>
           añadió un recuerdo:{" "}
-          <q className="text-[#dadada]">{snippet(memory.body)}</q>
+          <q className="text-[#dadada]">{snippet(plainBody(memory.body))}</q>
         </>
       ) : (
         "añadió un recuerdo"
