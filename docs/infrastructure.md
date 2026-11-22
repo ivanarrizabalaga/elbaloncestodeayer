@@ -42,7 +42,7 @@ Vercel records must stay **DNS only**: with the orange proxy Vercel cannot issue
   | `CRON_SECRET` | Production (Sensitive) |
   | `SUPABASE_SECRET_KEY` | Production (Sensitive). Only used to create invited accounts and by the mention digest |
   | `RESEND_API_KEY` | Production (Sensitive). The same key Supabase uses as SMTP password; the app sends the mention emails with it |
-  | `NEXT_PUBLIC_IMAGES_URL` | Production, Preview |
+  | `NEXT_PUBLIC_IMAGES_URL` | Production, Preview. Value `/img` (see Cloudflare R2 below) |
   | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_BUCKET`, `R2_ORIGINALS_BUCKET` | Production |
 
   `NEXT_PUBLIC_*` values are inlined at build time: redeploy after changing them. The Supabase secret key is only used by `src/lib/supabase/admin.ts`, to create the account of someone accepting an invitation (sign-ups are disabled) and in the daily mention digest.
@@ -81,6 +81,7 @@ Four buckets, all created with the **EU jurisdiction** (it cannot be changed lat
 | `elbaloncestodeayer-dev-public` | Public through its r2.dev URL | Local development |
 | `elbaloncestodeayer-dev-originals` | Private | Local development |
 
+- Serving: browsers load images from `https://elbaloncestodeayer.com/img/...`. `vercel.json` rewrites `/img/*` to `img.elbaloncestodeayer.com` with rewrite caching on, so Vercel's CDN keeps each derivative (they are uploaded with `cache-control: immutable`). Reason: on LaLiga match days Spanish ISPs block Cloudflare IPs and direct requests to R2 time out. Cost: images count towards Vercel Hobby's Fast Data Transfer (100 GB/month) and edge requests; check the Usage tab. To go back to serving from R2 directly, set `NEXT_PUBLIC_IMAGES_URL=https://img.elbaloncestodeayer.com` and redeploy.
 - Layout: `photos/<id>/original` (originals bucket), `photos/<id>/thumb.webp` (~480 px) and `photos/<id>/large.webp` (~1600 px) in the public bucket. `photos.storage_key` is `photos/<id>`.
 - Uploads: the browser PUTs the original with a presigned URL (10 minutes), then a Server Action makes the derivatives with `sharp` and creates the draft.
 - CORS on both originals buckets: `PUT` with `content-type` from `https://elbaloncestodeayer.com` and `http://localhost:3000`.
