@@ -34,8 +34,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except static files, images and the app icons / web app manifest.
+  // Everything except static files, images and the app icons / launch screens / manifest.
   matcher: [
-    "/((?!_next/static|_next/image|icon/|apple-icon|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)",
+    "/((?!_next/static|_next/image|icon/|apple-icon|splash/|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico)$).*)",
   ],
 };
