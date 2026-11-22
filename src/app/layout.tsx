@@ -1,8 +1,9 @@
 import { Analytics } from "@vercel/analytics/next";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Inter } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ICON_BG } from "@/lib/app-icon";
 import { openGraph, SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { siteOrigin } from "@/lib/site";
 import "./globals.css";
@@ -30,8 +31,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description: SITE_DESCRIPTION,
     openGraph: openGraph({}),
     twitter: { card: "summary_large_image" },
+    // Name and status bar when added to an iPhone's home screen.
+    appleWebApp: { title: "Baloncesto", statusBarStyle: "black" },
   };
 }
+
+export const viewport: Viewport = { themeColor: ICON_BG };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

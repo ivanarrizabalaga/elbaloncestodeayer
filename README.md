@@ -73,7 +73,6 @@ Nothing here is started; contributions are welcome. The reasoning and open point
 
 - **Mentions in memories:** typing `@` in a memory picks a person; it links to their page and emails them if they have a claimed account.
 - **Social links:** link the archive's real Instagram account and the YouTube channel in the footer and on the privacy page.
-- **Installable web app (PWA):** a web app manifest so people can add the site to their phone's home screen. No offline mode or push notifications.
 - **Data export:** a `pnpm prod:export-user <email>` script to prepare a person's data copy, only if requests become frequent.
 - **Anti-spam on withdrawal requests:** Cloudflare Turnstile on the anonymous form, only if spam appears.
 
