@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { rememberCodeEmail } from "@/lib/code-email";
 import {
   errorCode,
   hashInvitationToken,
@@ -90,6 +91,7 @@ export async function requestInvitationLink(formData: FormData) {
     console.error("requestInvitationLink: signInWithOtp failed", error);
     redirect(`${back}?paso=email&error=envio`);
   }
+  await rememberCodeEmail(email);
   redirect(`${back}?paso=enviado`);
 }
 
