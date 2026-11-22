@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { ICON_BG } from "@/lib/app-icon";
 import { openGraph, SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 import { siteOrigin } from "@/lib/site";
+import { SPLASH_IMAGES } from "@/lib/splash";
 import "./globals.css";
 
 const inter = Inter({
@@ -31,8 +32,12 @@ export async function generateMetadata(): Promise<Metadata> {
     description: SITE_DESCRIPTION,
     openGraph: openGraph({}),
     twitter: { card: "summary_large_image" },
-    // Name and status bar when added to an iPhone's home screen.
-    appleWebApp: { title: "Baloncesto", statusBarStyle: "black" },
+    // Name, status bar and launch screen when added to an iPhone's home screen.
+    appleWebApp: {
+      title: "Baloncesto",
+      statusBarStyle: "black",
+      startupImage: SPLASH_IMAGES,
+    },
   };
 }
 
