@@ -25,7 +25,10 @@ import {
 } from "@/lib/photos";
 import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
-import { loadPersonOptions } from "@/lib/people";
+import { MentionTextarea } from "@/components/mention-textarea";
+import type { PersonOption } from "@/components/person-picker";
+import { parseBody } from "@/lib/mentions";
+import { loadMentionedPeople, loadPersonOptions } from "@/lib/people";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { addMemory, deleteMemory, updateMemory } from "./actions";
 import { PhotoView, type PhotoTag, type Viewer } from "./photo-view";
@@ -182,12 +185,18 @@ export default async function PhotoPage({
   const authorIds = [
     ...new Set(memories.flatMap((m) => (m.author_id ? [m.author_id] : []))),
   ];
-  const { data: authors } = authorIds.length
-    ? await supabase
-        .from("profile_names")
-        .select("id, display_name")
-        .in("id", authorIds)
-    : { data: [] };
+  const [{ data: authors }, mentioned] = await Promise.all([
+    authorIds.length
+      ? supabase
+          .from("profile_names")
+          .select("id, display_name")
+          .in("id", authorIds)
+      : Promise.resolve({ data: [] }),
+    loadMentionedPeople(
+      supabase,
+      memories.map((m) => m.body),
+    ),
+  ]);
   const authorName = new Map(
     (authors ?? []).map((a) => [a.id, a.display_name]),
   );
@@ -402,13 +411,14 @@ export default async function PhotoPage({
                               )}
                           </span>
                           <p className="whitespace-pre-line text-[#dadada]">
-                            {memory.body}
+                            <MemoryBody body={memory.body} people={mentioned} />
                           </p>
                           {user && memory.author_id === user.id && (
                             <OwnMemoryActions
                               id={memory.id}
                               slug={photo.slug}
                               body={memory.body}
+                              people={people}
                             />
                           )}
                         </div>
@@ -420,17 +430,18 @@ export default async function PhotoPage({
               {canWrite && (
                 <form action={addMemory} className="mt-2 flex flex-col gap-2">
                   <input type="hidden" name="slug" value={photo.slug} />
-                  <label className="flex flex-col gap-2 text-sm text-muted">
+                  <label
+                    htmlFor="nuevo-recuerdo"
+                    className="text-sm text-muted"
+                  >
                     Añade un recuerdo de esta foto
-                    <textarea
-                      name="body"
-                      rows={3}
-                      required
-                      maxLength={4000}
-                      placeholder="¿Te acuerdas de aquel partido?"
-                      className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3.5 py-3 text-[15px] text-fg"
-                    />
                   </label>
+                  <MentionTextarea
+                    id="nuevo-recuerdo"
+                    people={people}
+                    placeholder="¿Te acuerdas de aquel partido?"
+                    className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3.5 py-3 text-[15px] text-fg"
+                  />
                   <button
                     type="submit"
                     className="inline-flex h-11 items-center self-start rounded-full border border-line-strong px-5 font-medium"
@@ -475,10 +486,12 @@ function OwnMemoryActions({
   id,
   slug,
   body,
+  people,
 }: {
   id: string;
   slug: string;
   body: string;
+  people: PersonOption[];
 }) {
   return (
     <details className="mt-1 text-sm">
@@ -488,13 +501,13 @@ function OwnMemoryActions({
       <form action={updateMemory} className="flex flex-col gap-2">
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="slug" value={slug} />
-        <textarea
-          name="body"
-          rows={3}
-          required
-          maxLength={4000}
-          defaultValue={body}
-          aria-label="Tu recuerdo"
+        <label htmlFor={`recuerdo-${id}`} className="sr-only">
+          Tu recuerdo
+        </label>
+        <MentionTextarea
+          id={`recuerdo-${id}`}
+          people={people}
+          defaultBody={body}
           className="rounded-lg border border-line-strong bg-[#1a1a1a] px-3 py-2 text-[15px] text-fg"
         />
         <div className="flex flex-wrap gap-2">
@@ -515,4 +528,29 @@ function OwnMemoryActions({
       </form>
     </details>
   );
+}
+
+// A memory's text with its mentions linked to each person's page.
+function MemoryBody({
+  body,
+  people,
+}: {
+  body: string;
+  people: Map<string, { name: string; slug: string }>;
+}) {
+  return parseBody(body).map((part, i) => {
+    if (typeof part === "string") return part;
+    const person = people.get(part.id);
+    return person ? (
+      <Link
+        key={i}
+        href={`/persona/${person.slug}`}
+        className="font-semibold text-accent underline-offset-4 hover:underline"
+      >
+        {person.name}
+      </Link>
+    ) : (
+      part.name
+    );
+  });
 }

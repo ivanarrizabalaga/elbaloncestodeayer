@@ -1,4 +1,5 @@
 import "server-only";
+import { mentionIds } from "@/lib/mentions";
 import { slugify, uniqueSlug } from "@/lib/slug";
 import type { createClient } from "@/lib/supabase/server";
 
@@ -101,5 +102,23 @@ export function pickPortrait<
     [...usable].sort(
       (a, b) => (b.photo.year_from ?? 0) - (a.photo.year_from ?? 0),
     )[0]
+  );
+}
+
+// People mentioned in memories (src/lib/mentions.ts), by id: current name and page. A merged
+// duplicate keeps its slug, which redirects to the person that stayed; a deleted person is
+// missing, and the mention shows as plain text.
+export async function loadMentionedPeople(
+  supabase: Client,
+  bodies: string[],
+): Promise<Map<string, { name: string; slug: string }>> {
+  const ids = mentionIds(bodies);
+  if (ids.length === 0) return new Map();
+  const { data } = await supabase
+    .from("people")
+    .select("id, full_name, slug")
+    .in("id", ids);
+  return new Map(
+    (data ?? []).map((p) => [p.id, { name: p.full_name, slug: p.slug }]),
   );
 }
