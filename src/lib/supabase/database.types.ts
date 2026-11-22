@@ -284,6 +284,7 @@ export type Database = {
           full_name: string;
           id: string;
           merged_into: string | null;
+          portrait_tag_id: string | null;
           slug: string;
         };
         ComputedFields: never;
@@ -295,6 +296,7 @@ export type Database = {
           full_name: string;
           id?: string;
           merged_into?: string | null;
+          portrait_tag_id?: string | null;
           slug: string;
         };
         Update: {
@@ -305,6 +307,7 @@ export type Database = {
           full_name?: string;
           id?: string;
           merged_into?: string | null;
+          portrait_tag_id?: string | null;
           slug?: string;
         };
         Relationships: [
@@ -799,6 +802,10 @@ export type Database = {
       remove_own_tag: { Args: { p_tag_id: string }; Returns: undefined };
       request_access: {
         Args: { p_age_confirmed: boolean; p_email: string; p_name: string };
+        Returns: undefined;
+      };
+      set_person_portrait: {
+        Args: { p_person_id: string; p_tag_id?: string };
         Returns: undefined;
       };
       set_user_blocked: {

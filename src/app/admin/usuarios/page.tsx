@@ -19,7 +19,7 @@ import {
 import { InviteAdmin } from "./invite-admin";
 import { Chip, Tab, Table, Td } from "../table";
 
-export const metadata: Metadata = { title: "Usuarios y administradores" };
+export const metadata: Metadata = { title: "Accesos" };
 
 const ERRORS: Record<string, string> = {
   ultimo: "Tiene que quedar al menos un admin activo.",
@@ -51,6 +51,7 @@ export default async function UsersPage({
     { data: invitations },
     { data: requestRows },
     { data: approvedRows },
+    { data: claimedRows },
   ] = await Promise.all([
     supabase.rpc("admin_user_list"),
     supabase
@@ -73,7 +74,16 @@ export default async function UsersPage({
       .is("accepted_at", null)
       .gt("expires_at", now)
       .order("created_at", { ascending: false }),
+    // The person each account is linked to, to link to their page in «Personas».
+    supabase
+      .from("people")
+      .select("id, claimed_by")
+      .not("claimed_by", "is", null)
+      .is("merged_into", null),
   ]);
+  const personByAccount = new Map(
+    (claimedRows ?? []).map((p) => [p.claimed_by, p.id]),
+  );
   const all = accounts ?? [];
   const pending = invitations ?? [];
   const requests = requestRows ?? [];
@@ -94,12 +104,14 @@ export default async function UsersPage({
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex max-w-[640px] flex-col gap-1">
           <h1 className="font-display text-[40px] leading-none font-bold sm:text-[44px]">
-            Usuarios y administradores
+            Accesos
           </h1>
           <p className="text-muted">
-            Hay dos roles. Los usuarios etiquetan, añaden recuerdos, invitan y
-            proponen fotos. Los admins, además, publican, revisan lo pendiente y
-            gestionan los usuarios.
+            Quién puede entrar y qué puede hacer. Los usuarios etiquetan, añaden
+            recuerdos, invitan y proponen fotos. Los admins, además, publican,
+            revisan lo pendiente y gestionan los accesos. Si la cuenta es de
+            alguien que sale en las fotos, también la puedes gestionar desde su
+            página en «Personas».
           </p>
         </div>
         <InviteAdmin />
@@ -226,7 +238,10 @@ export default async function UsersPage({
                   <Who name={a.display_name} email={a.email} />
                 </Td>
                 <Td>
-                  <ProfileLink slug={a.person_slug} name={a.person_name} />
+                  <PersonLink
+                    id={personByAccount.get(a.id)}
+                    name={a.person_name}
+                  />
                 </Td>
                 <Td>
                   <Chip>Admin</Chip>
@@ -344,7 +359,10 @@ export default async function UsersPage({
                     <Who name={u.display_name} email={u.email} />
                   </Td>
                   <Td>
-                    <ProfileLink slug={u.person_slug} name={u.person_name} />
+                    <PersonLink
+                      id={personByAccount.get(u.id)}
+                      name={u.person_name}
+                    />
                   </Td>
                   <Td>{u.invited_by_name ?? "—"}</Td>
                   <Td>{contributions(u)}</Td>
@@ -419,16 +437,16 @@ function Who({ name, email }: { name: string | null; email: string | null }) {
   );
 }
 
-function ProfileLink({
-  slug,
+function PersonLink({
+  id,
   name,
 }: {
-  slug: string | null;
+  id: string | undefined;
   name: string | null;
 }) {
-  return slug ? (
+  return id ? (
     <Link
-      href={`/persona/${slug}`}
+      href={`/admin/personas/${id}`}
       className="text-accent underline-offset-4 hover:underline"
     >
       {name}

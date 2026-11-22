@@ -27,21 +27,30 @@ export function Tab({
   );
 }
 
-// Wide tables scroll sideways on phones instead of squashing.
+// Wide tables scroll sideways on phones instead of squashing. With `widths` (one class per
+// column) the layout is fixed, so columns don't jump when a filter changes the rows.
 export function Table({
   head,
+  widths,
   children,
 }: {
   head: string[];
+  widths?: string[];
   children: ReactNode;
 }) {
   return (
     <div className="overflow-x-auto rounded-lg bg-surface">
-      <table className="w-full min-w-[860px] text-left text-sm">
+      <table
+        className={`w-full min-w-[860px] text-left text-sm ${widths ? "table-fixed" : ""}`}
+      >
         <thead className="text-xs text-muted">
           <tr>
             {head.map((h, i) => (
-              <th key={h} scope="col" className="px-4 py-3 font-medium">
+              <th
+                key={h}
+                scope="col"
+                className={`px-4 py-3 font-medium ${widths?.[i] ?? ""}`}
+              >
                 {i === head.length - 1 ? (
                   <span className="sr-only">{h}</span>
                 ) : (

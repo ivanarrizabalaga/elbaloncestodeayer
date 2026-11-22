@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 // Admin sections. Only the ones that exist; the rest arrive in later phases.
-// The badge on «Usuarios y admins» counts pending access requests.
+// The badge on «Accesos» counts pending access requests.
 export function AdminNav({
   pending,
   requests,
@@ -19,7 +19,7 @@ export function AdminNav({
     { href: "/admin/personas", label: "Personas", badge: 0 },
     {
       href: "/admin/usuarios",
-      label: "Usuarios y admins",
+      label: "Accesos",
       badge: requests,
       query: requests > 0 ? "?lista=solicitudes" : "",
     },

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
+import { BackLink } from "@/components/back-link";
 import { FaceCrop } from "@/components/face-crop";
 import { PhotoGrid, type GridPhoto } from "@/components/photo-grid";
 import { WhatsAppShare } from "@/components/whatsapp-share";
+import { pickPortrait } from "@/lib/people";
 import { photoLabel, photoSrc, teamsText } from "@/lib/photos";
 import { openGraph, previewImage } from "@/lib/seo";
 import { initials, siteOrigin } from "@/lib/site";
@@ -17,7 +19,9 @@ const getPerson = cache(async (slug: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("people")
-    .select("id, full_name, slug, bio, claimed_by, merged_into")
+    .select(
+      "id, full_name, slug, bio, claimed_by, merged_into, portrait_tag_id",
+    )
     .eq("slug", slug)
     .maybeSingle();
   return data;
@@ -30,18 +34,16 @@ export async function generateMetadata({
   const person = await getPerson(slug);
   if (!person || person.merged_into) return {};
 
-  // Preview image: their most recent published photo.
+  // Preview image: the photo of their featured face crop.
   const supabase = await createClient();
   const { data: tags } = await supabase
     .from("tags")
-    .select("photo:photos!inner(slug, status, published_at)")
+    .select("id, photo:photos!inner(slug, status, year_from, storage_key)")
     .eq("person_id", person.id)
     .is("removed_at", null)
     .eq("photo.status", "published");
-  const photos = (tags ?? [])
-    .map((t) => t.photo)
-    .sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""));
-  const count = photos.length;
+  const count = (tags ?? []).length;
+  const portrait = pickPortrait(tags ?? [], person.portrait_tag_id);
   const description =
     count > 0
       ? `${person.full_name} sale en ${count === 1 ? "1 foto" : `${count} fotos`} de El baloncesto de ayer. ¿Le conoces?`
@@ -56,10 +58,10 @@ export async function generateMetadata({
       title: person.full_name,
       description,
       url: `/persona/${person.slug}`,
-      images: photos[0]
+      images: portrait
         ? [
             previewImage(
-              photos[0].slug,
+              portrait.photo.slug,
               `Foto en la que sale ${person.full_name}`,
             ),
           ]
@@ -106,7 +108,7 @@ export default async function PersonPage({
   const { data: ownTags } = await supabase
     .from("tags")
     .select(
-      "x, y, photo:photos!inner(id, slug, status, team, team_2, season_label, year_from, competition, storage_key, width, height, published_at)",
+      "id, x, y, photo:photos!inner(id, slug, status, team, team_2, season_label, year_from, competition, storage_key, width, height, published_at)",
     )
     .eq("person_id", person.id)
     .is("removed_at", null)
@@ -189,12 +191,43 @@ export default async function PersonPage({
     .filter(Boolean)
     .join(" · ");
 
-  // Face crop from their most recent photo.
-  const portrait = appearances.find((t) => t.photo.storage_key);
+  const portrait = pickPortrait(appearances, person.portrait_tag_id);
+  // The person themselves or an admin can choose another one.
+  const canChoosePortrait =
+    (isMe || Boolean(user?.isAdmin)) && appearances.length > 1;
   const shareUrl = `${await siteOrigin()}/persona/${person.slug}`;
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 pt-10 sm:px-6">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-14 px-4 pt-6 sm:px-6">
+      <div className="-mb-8 flex items-center justify-between gap-3">
+        {/* Back to the previous page (gallery, photo, admin…); arriving from outside, to the gallery. */}
+        <BackLink
+          fallback="/"
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 pr-2 text-sm text-muted hover:text-fg"
+        >
+          <svg
+            aria-hidden="true"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          Volver
+        </BackLink>
+        {user?.isAdmin && (
+          <Link
+            href={`/admin/personas/${person.id}`}
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-accent"
+          >
+            Editar persona →
+          </Link>
+        )}
+      </div>
       {bienvenida === "1" && isMe && (
         <section
           aria-labelledby="bienvenida"
@@ -226,17 +259,27 @@ export default async function PersonPage({
         className="flex flex-wrap items-end gap-10"
       >
         {portrait?.photo.storage_key && (
-          <FaceCrop
-            src={photoSrc(portrait.photo.storage_key)}
-            x={portrait.x}
-            y={portrait.y}
-            alt={`${person.full_name} en una foto de ${photoLabel(portrait.photo)}`}
-            className="aspect-[4/5] w-40 flex-none rounded-lg sm:w-auto sm:min-w-60 sm:flex-[0_1_340px]"
-          >
-            <span className="absolute bottom-3 left-3 hidden rounded-md bg-bg/85 px-2.5 py-1 text-xs text-[#c8c8c8] sm:block">
-              De la foto de {photoLabel(portrait.photo)}
-            </span>
-          </FaceCrop>
+          <div className="flex w-40 flex-none flex-col gap-2 sm:w-auto sm:min-w-60 sm:flex-[0_1_340px]">
+            <FaceCrop
+              src={photoSrc(portrait.photo.storage_key)}
+              x={portrait.x}
+              y={portrait.y}
+              alt={`${person.full_name} en una foto de ${photoLabel(portrait.photo)}`}
+              className="aspect-[4/5] w-full rounded-lg"
+            >
+              <span className="absolute bottom-3 left-3 hidden rounded-md bg-bg/85 px-2.5 py-1 text-xs text-[#c8c8c8] sm:block">
+                De la foto de {photoLabel(portrait.photo)}
+              </span>
+            </FaceCrop>
+            {canChoosePortrait && (
+              <Link
+                href={`/persona/${person.slug}/foto-destacada`}
+                className="inline-flex min-h-11 items-center text-sm text-muted underline-offset-4 hover:text-fg hover:underline"
+              >
+                Cambiar foto
+              </Link>
+            )}
+          </div>
         )}
         <div className="flex min-w-0 flex-[999_1_480px] flex-col gap-4">
           {person.claimed_by && (
@@ -254,7 +297,7 @@ export default async function PersonPage({
               >
                 <path d="M5 12l5 5 9-10" />
               </svg>
-              Perfil reclamado
+              Tiene cuenta
             </span>
           )}
           <h1

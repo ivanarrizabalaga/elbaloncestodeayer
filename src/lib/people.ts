@@ -86,3 +86,20 @@ function yearRange(years: number[]): string {
   const to = Math.max(...years);
   return from === to ? String(from) : `${from}–${String(to).slice(-2)}`;
 }
+
+// The featured face crop: the tag they chose, or else their photo of the most recent season.
+// Only tags on published photos with an image count, so a removed choice falls back.
+export function pickPortrait<
+  T extends {
+    id: string;
+    photo: { year_from: number | null; storage_key: string | null };
+  },
+>(tags: T[], chosenId: string | null): T | undefined {
+  const usable = tags.filter((t) => t.photo.storage_key);
+  return (
+    usable.find((t) => t.id === chosenId) ??
+    [...usable].sort(
+      (a, b) => (b.photo.year_from ?? 0) - (a.photo.year_from ?? 0),
+    )[0]
+  );
+}
