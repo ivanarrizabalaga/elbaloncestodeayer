@@ -7,7 +7,8 @@ type PhotoStatus = Database["public"]["Enums"]["photo_status"];
 export type ImageSize = "thumb" | "large";
 
 // storage_key "photos/<id>": derivatives at <NEXT_PUBLIC_IMAGES_URL>/photos/<id>/{thumb,large}.webp
-// (thumb ~480 px wide, large ~1600 px, generated on upload).
+// (thumb ~480 px wide, large ~1600 px, generated on upload). In production the base is "/img",
+// proxied by Vercel to R2 (vercel.json), so browsers never connect to Cloudflare directly.
 // storage_key "seed/…": local placeholder files in public/ (test data only).
 export function photoSrc(
   storageKey: string,
