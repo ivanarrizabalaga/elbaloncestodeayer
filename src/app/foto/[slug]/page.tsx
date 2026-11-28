@@ -15,6 +15,7 @@ import {
 } from "@/lib/gallery";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { InstagramShare } from "@/components/instagram-share";
+import { LinkShare } from "@/components/link-share";
 import {
   decadeLabel,
   PHOTO_STATUS_LABEL,
@@ -357,7 +358,13 @@ export default async function PhotoPage({
           <div className="mt-1.5 flex flex-col items-start gap-1">
             <div className="flex flex-wrap items-start gap-3">
               <WhatsAppShare text={shareText} url={shareUrl} />
-              <InstagramShare text={shareText} url={shareUrl} />
+              <InstagramShare
+                imageSrc={photoSrc(photo.storage_key)}
+                fileName={photo.slug}
+                text={shareText}
+                url={shareUrl}
+              />
+              <LinkShare text={shareText} url={shareUrl} />
             </div>
             {photo.status === "published" && (
               <Link
